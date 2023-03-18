@@ -24,8 +24,8 @@ func initMaze(height int, width int) *graph {
 	//nodes fill left to right, then top to bottom
 	//edges are added on  the bottom and right side, so the bottom row and right column are ignored
 	index := 0
-	for row := 0; row < width-1; row++ {
-		for col := 0; col < height-1; col++ {
+	for row := 0; row < height-1; row++ {
+		for col := 0; col < width-1; col++ {
 			//edge to below
 			g.AddEdge(index, index+width)
 			//edge to the right
@@ -37,7 +37,7 @@ func initMaze(height int, width int) *graph {
 		index++
 	}
 	//add just to the right for the bottom row, and nothing for the bottom right node
-	for col := 0; col < height-1; col++ {
+	for col := 0; col < width-1; col++ {
 		g.AddEdge(index, index+1)
 		index++
 	}
@@ -46,6 +46,6 @@ func initMaze(height int, width int) *graph {
 }
 
 func main() {
-	maze := initMaze(3, 3)
+	maze := initMaze(2, 10)
 	maze.Print()
 }
