@@ -31,8 +31,8 @@ func makeNeighbor(n *node, weight int) *neighbor {
 	return &e
 }
 
-// addNode places a node at the end of the graph's slice of nodes and returns the index of the node in the slice.
-func (g *graph) addNode(v int) int {
+// AddNode places a node at the end of the graph's slice of nodes and returns the index of the node in the slice.
+func (g *graph) AddNode(v int) int {
 	g.nodes = append(g.nodes, makeNode(v, len(g.nodes)))
 	return len(g.nodes) - 1
 }
@@ -42,7 +42,14 @@ func addEdge(n1 *node, n2 *node) {
 	n1.neighbors = append(n1.neighbors, makeNeighbor(n2, 1))
 	n2.neighbors = append(n2.neighbors, makeNeighbor(n1, 1))
 }
-func (g *graph) addEdge(i1 int, i2 int) {
+func (g *graph) AddEdge(i1 int, i2 int) {
+	//no duplicate edges
+	//assumes edges are not directed
+	for _, adj := range g.nodes[i1].neighbors {
+		if adj.n.index == i2 {
+			return
+		}
+	}
 	addEdge(g.nodes[i1], g.nodes[i2])
 }
 
@@ -60,9 +67,9 @@ func (g *graph) Print() {
 	for nodeIndex, currentNode := range g.nodes {
 		//index and value of the node
 		fmt.Printf("%v (%v) | [", nodeIndex, currentNode.val)
-		for _, currentNeighbor := range currentNode.neighbors {
+		for _, adj := range currentNode.neighbors {
 			//index and value of each neighbor
-			fmt.Printf("%v, ", getIndex(g, currentNeighbor.n))
+			fmt.Printf("%v, ", getIndex(g, adj.n))
 		}
 		fmt.Print("]\n")
 	}
@@ -101,11 +108,11 @@ func dfsRecursive(n *node, val int, visited *[]bool, pathOut *[]int) bool {
 
 /*func main() {
 	var g graph
-	g.addNode(1)
-	g.addNode(1)
-	g.addNode(2)
-	g.addEdge(0, 1)
-	g.addEdge(1, 2)
+	g.AddNode(1)
+	g.AddNode(1)
+	g.AddNode(2)
+	g.AddEdge(0, 1)
+	g.AddEdge(1, 2)
 
 	g.Print()
 	fmt.Println(dfs(&g, 1, 2))
