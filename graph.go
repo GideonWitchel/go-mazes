@@ -53,6 +53,31 @@ func (g *graph) AddEdge(i1 int, i2 int) {
 	addEdge(g.nodes[i1], g.nodes[i2])
 }
 
+// unidirectional
+func removeEdge(g *graph, i1 int, i2 int) {
+	for i, adj := range g.nodes[i1].neighbors {
+		if adj.n.index == i2 {
+			g.nodes[i1].neighbors = append(g.nodes[i1].neighbors[:i], g.nodes[i1].neighbors[i+1:]...)
+		}
+	}
+}
+
+// bidirectional
+func (g *graph) RemoveEdge(i1 int, i2 int) {
+	removeEdge(g, i1, i2)
+	removeEdge(g, i2, i1)
+}
+
+// assumes bidirectional
+func (g *graph) HasEdge(i1 int, i2 int) bool {
+	for _, adj := range g.nodes[i1].neighbors {
+		if adj.n.index == i2 {
+			return true
+		}
+	}
+	return false
+}
+
 func getIndex(g *graph, n *node) int {
 	for i, node := range g.nodes {
 		if node == n {
