@@ -37,6 +37,10 @@ func (g *graph) AddNode(v int) int {
 	return len(g.nodes) - 1
 }
 
+func (g *graph) SetNode(index int, val int) {
+	g.nodes[index].val = val
+}
+
 // addEdge is undirected and assumes all weights are 1
 func addEdge(n1 *node, n2 *node) {
 	n1.neighbors = append(n1.neighbors, makeNeighbor(n2, 1))
