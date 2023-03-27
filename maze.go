@@ -196,7 +196,7 @@ func randomizeMaze(m *maze, sparsity int) {
 	}
 }
 
-func main() {
+/*func main() {
 	maze := initMaze(5, 10)
 	randomizeMaze(maze, 4)
 	maze.SetSquare(4, 9, 3)
@@ -205,3 +205,4 @@ func main() {
 
 	printSolution(maze)
 }
+*/
