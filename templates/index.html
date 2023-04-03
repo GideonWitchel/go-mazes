@@ -3,16 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <title>Go Mazes</title>
+
+    <style>
+
+    </style>
 </head>
 <body>
-    <table>
-        {{ range .nodes }}
+    <table style="border-collapse: collapse">
+        {{ range . }}
         <tr>
             {{ range . }}
-            <th style="border-top-style: {{if .up}} solid {{else}} none; border-bottom-style: {{if .down}} solid {{else}} none; border-right-style: {{if .right}} solid {{else}} none; border-left-style: {{if .left}} solid {{else}} none;" >{{.val}}</th>
+            <th style="{{.}}">     </th>
             {{ end }}
         </tr>
-
         {{ end }}
     </table>
 </body>

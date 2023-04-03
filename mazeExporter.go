@@ -98,13 +98,8 @@ func printSolution(m *maze) {
 	if ok {
 		//reverse path to draw from starting location
 		//skip the first item which overwrites the solution
-		forwardPath := make([]int, 0)
 		for i := len(*path) - 1; i >= 1; i-- {
-			forwardPath = append(forwardPath, (*path)[i])
-		}
-
-		for _, i := range forwardPath {
-			row, col := getMazeCoords(m, i)
+			row, col := getMazeCoords(m, (*path)[i])
 			m.SetSquare(row, col, 2)
 			m.Print()
 			print("\n\n")

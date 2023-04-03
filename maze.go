@@ -105,3 +105,12 @@ func randomizeMaze(m *maze, sparsity int) {
 		m.SetWall(m.height-1, col, m.height-1, col+1, rand.Intn(sparsity) == 1)
 	}
 }
+
+func (m *maze) fillPath(path []int) {
+	//reverse path to draw from starting location
+	//skip the first item which overwrites the solution
+	for i := len(path) - 1; i >= 1; i-- {
+		row, col := getMazeCoords(m, path[i])
+		m.SetSquare(row, col, 2)
+	}
+}
