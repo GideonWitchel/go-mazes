@@ -6,18 +6,11 @@
 </head>
 <body>
     <table>
-        {{ range .g.nodes }}
+        {{ range .nodes }}
         <tr>
-            <th class = "edge" >E</th>
-            <th>E</th>
-            <th>E</th>
-            <th>E</th>
-            <th>E</th>
-            <th>E</th>
-            <th>E</th>
-            <th>E</th>
-            <th>E</th>
-            <th>E</th>
+            {{ range . }}
+            <th style="border-top-style: {{if .up}} solid {{else}} none; border-bottom-style: {{if .down}} solid {{else}} none; border-right-style: {{if .right}} solid {{else}} none; border-left-style: {{if .left}} solid {{else}} none;" >{{.val}}</th>
+            {{ end }}
         </tr>
 
         {{ end }}

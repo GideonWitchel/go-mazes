@@ -8,10 +8,6 @@ import (
 
 var tpl = template.Must(template.ParseFiles("templates/index.html"))
 
-var mazeTemplate struct {
-	values [][]int
-}
-
 func indexHandler(w http.ResponseWriter, r *http.Request) {
 	tpl.Execute(w, nil)
 }

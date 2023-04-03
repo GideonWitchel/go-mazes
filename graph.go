@@ -72,7 +72,7 @@ func (g *graph) RemoveEdge(i1 int, i2 int) {
 	removeEdge(g, i2, i1)
 }
 
-// assumes bidirectional
+// HasEdge assumes bidirectional
 // TODO I had to swap the return values. I don't know why.
 func (g *graph) HasEdge(i1 int, i2 int) bool {
 	for _, adj := range g.nodes[i1].neighbors {
@@ -135,16 +135,3 @@ func dfsRecursive(n *node, val int, visited *[]bool, pathOut *[]int) bool {
 
 	return false
 }
-
-/*func main() {
-	var g graph
-	g.AddNode(1)
-	g.AddNode(1)
-	g.AddNode(2)
-	g.AddEdge(0, 1)
-	g.AddEdge(1, 2)
-
-	g.Print()
-	fmt.Println(dfs(&g, 1, 2))
-}
-*/
