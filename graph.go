@@ -73,13 +73,14 @@ func (g *graph) RemoveEdge(i1 int, i2 int) {
 }
 
 // assumes bidirectional
+// TODO I had to swap the return values. I don't know why.
 func (g *graph) HasEdge(i1 int, i2 int) bool {
 	for _, adj := range g.nodes[i1].neighbors {
 		if adj.n.index == i2 {
-			return true
+			return false
 		}
 	}
-	return false
+	return true
 }
 
 func getIndex(g *graph, n *node) int {

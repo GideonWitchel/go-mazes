@@ -74,8 +74,6 @@ func printNode(val int) {
 	}
 }
 
-// TODO seems to render walls as empty and empty as walls?
-// - for now just manually swapped the symbols
 func (m *maze) Print() {
 	index := 0
 	for row := 0; row < m.height; row++ {
@@ -83,9 +81,9 @@ func (m *maze) Print() {
 			printNode(m.g.nodes[index].val)
 
 			if m.g.HasEdge(index, index+1) {
-				fmt.Print(" ")
-			} else {
 				fmt.Print("|")
+			} else {
+				fmt.Print(" ")
 			}
 			index++
 		}
@@ -100,9 +98,9 @@ func (m *maze) Print() {
 		index -= m.width - 1
 		for col := 0; col < m.width; col++ {
 			if m.g.HasEdge(index, index+m.width) {
-				fmt.Print("  ")
-			} else {
 				fmt.Print("— ")
+			} else {
+				fmt.Print("  ")
 			}
 			index++
 		}
@@ -194,6 +192,54 @@ func randomizeMaze(m *maze, sparsity int) {
 	for col := 0; col < m.width-1; col++ {
 		m.SetWall(m.height-1, col, m.height-1, col+1, rand.Intn(sparsity) == 1)
 	}
+}
+
+func getEdges(m *maze, row int, col int) []bool {
+	newDirections := make([]bool, 4)
+
+	//North
+	if row == 0 || m.g.HasEdge(getMazeIndex(m, row, col), getMazeIndex(m, row-1, col)) {
+		newDirections[0] = true
+	}
+	//South
+	if row == m.height-1 || m.g.HasEdge(getMazeIndex(m, row, col), getMazeIndex(m, row+1, col)) {
+		newDirections[1] = true
+	}
+	//East
+	if col == m.width-1 || m.g.HasEdge(getMazeIndex(m, row, col), getMazeIndex(m, row, col+1)) {
+		newDirections[2] = true
+	}
+	//West
+	if col == 0 || m.g.HasEdge(getMazeIndex(m, row, col), getMazeIndex(m, row, col-1)) {
+		newDirections[3] = true
+	}
+
+	return newDirections
+}
+
+func mazeToSlice(m *maze) ([][]int, [][][]bool) {
+	//contains the values of every node
+	nodes := make([][]int, m.height)
+	for row := 0; row < m.height; row++ {
+		newRow := make([]int, m.width)
+		for col := 0; col < m.width; col++ {
+			newRow[col] = m.g.nodes[getMazeIndex(m, row, col)].val
+		}
+		nodes[row] = newRow
+	}
+
+	//Contains the status of edges for every node's neighbors
+	//N, S, E, W
+	edges := make([][][]bool, m.height)
+	for row := 0; row < m.height; row++ {
+		newRow := make([][]bool, m.width)
+		for col := 0; col < m.width; col++ {
+			newRow[col] = getEdges(m, row, col)
+		}
+		edges[row] = newRow
+	}
+
+	return nodes, edges
 }
 
 /*func main() {

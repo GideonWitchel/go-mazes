@@ -6,8 +6,9 @@
 </head>
 <body>
     <table>
+        {{ range .g.nodes }}
         <tr>
-            <th>E</th>
+            <th class = "edge" >E</th>
             <th>E</th>
             <th>E</th>
             <th>E</th>
@@ -18,54 +19,8 @@
             <th>E</th>
             <th>E</th>
         </tr>
-        <tr>
-            <th>E</th>
-            <th>S</th>
-            <th>S</th>
-            <th>S</th>
-            <th>S</th>
-            <th>S</th>
-            <th>S</th>
-            <th>S</th>
-            <th>S</th>
-            <th>E</th>
-        </tr>
-        <tr>
-            <th>E</th>
-            <th>S</th>
-            <th>S</th>
-            <th>S</th>
-            <th>S</th>
-            <th>S</th>
-            <th>S</th>
-            <th>S</th>
-            <th>S</th>
-            <th>E</th>
-        </tr>
-        <tr>
-            <th>E</th>
-            <th>S</th>
-            <th>S</th>
-            <th>S</th>
-            <th>S</th>
-            <th>S</th>
-            <th>S</th>
-            <th>S</th>
-            <th>S</th>
-            <th>E</th>
-        </tr>
-        <tr>
-            <th>E</th>
-            <th>E</th>
-            <th>E</th>
-            <th>E</th>
-            <th>E</th>
-            <th>E</th>
-            <th>E</th>
-            <th>E</th>
-            <th>E</th>
-            <th>E</th>
-        </tr>
+
+        {{ end }}
     </table>
 </body>
 </html>
