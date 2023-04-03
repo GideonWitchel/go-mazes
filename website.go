@@ -3,13 +3,21 @@ package main
 import (
 	"html/template"
 	"net/http"
+	"strconv"
 )
 
 var tpl = template.Must(template.ParseFiles("templates/index.html"))
 
 func indexHandler(w http.ResponseWriter, r *http.Request) {
 	maze := initMaze(5, 10)
-	randomizeMaze(maze, 4)
+
+	sparsity := 3
+	out, err := strconv.Atoi(r.URL.Query().Get("sparsity"))
+	if err == nil {
+		sparsity = out
+	}
+
+	randomizeMaze(maze, sparsity)
 	maze.SetSquare(4, 9, 3)
 
 	ok, path := dfs(&maze.g, 3, 0)
