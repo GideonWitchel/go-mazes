@@ -4,13 +4,11 @@ import (
 	"math/rand"
 )
 
-/*
-Each node in a maze has an integer value representing its state
-0 is empty
-1 is filled by the user (which overrides any empty node)
-2 is filled by the solution (which overrides any user filled node)
-3 is filled by the goal (which overrides any user or solution node)
-*/
+// Each node in a maze has an integer value representing its state
+// 0 is empty
+// 1 is filled by the user (which overrides any empty node)
+// 2 is filled by the solution (which overrides any user filled node)
+// 3 is filled by the goal (which overrides any user or solution node)
 
 type maze struct {
 	g      graph
@@ -19,7 +17,7 @@ type maze struct {
 }
 
 func initMaze(height int, width int) *maze {
-	//cannot be smaller than 2x2
+	// cannot be smaller than 2x2
 	if height < 2 || width < 2 {
 		return nil
 	}
@@ -31,32 +29,33 @@ func initMaze(height int, width int) *maze {
 		g.AddNode(0)
 	}
 
-	//height is the number of rows, width is the number of columns
-	//initialize with no walls, so every node is connected to the node to its Top, Bottom, Right, and Left
-	//nodes fill left to right, then top to bottom
-	//edges are added on  the bottom and right side, so the bottom row and right column are ignored
-	index := 0
-	for row := 0; row < height-1; row++ {
-		for col := 0; col < width-1; col++ {
-			//edge to below
-			g.AddEdge(index, index+width)
-			//edge to the right
-			g.AddEdge(index, index+1)
-			index++
-		}
-		//add just below for the right column
-		g.AddEdge(index, index+width)
-		index++
-	}
-	//add just to the right for the bottom row, and nothing for the bottom right node
-	for col := 0; col < width-1; col++ {
-		g.AddEdge(index, index+1)
-		index++
-	}
-
 	m.height = height
 	m.width = width
 	return &m
+}
+
+// setAllWalls makes all the walls the same value, depending on remove
+// if exists is true, all walls are added (no edges)
+// if exists is false, all walls are removed (edges between every node and its neighbors)
+func (m *maze) setAllWalls(exists bool) {
+	// height is the number of rows, width is the number of columns
+	// initialize with no walls, so every node is connected to the node to its Top, Bottom, Right, and Left
+	// nodes fill left to right, then top to bottom
+	// edges are added on  the bottom and right side, so the bottom row and right column are ignored, which is seen in the height-1 and width-1
+	for row := 0; row < m.height-1; row++ {
+		for col := 0; col < m.width-1; col++ {
+			//edge to below
+			m.SetWall(row, col, row+1, col, !exists)
+			//edge to the right
+			m.SetWall(row, col, row, col+1, !exists)
+		}
+		// add just below for the right column
+		m.SetWall(row, m.width-1, row+1, m.width-1, !exists)
+	}
+	// add just to the right for the bottom row, and nothing for the bottom right node, which is seen in the width-1
+	for col := 0; col < m.width-1; col++ {
+		m.SetWall(m.height-1, col, m.height-1, col+1, !exists)
+	}
 }
 
 func getMazeIndex(m *maze, row int, col int) int {
@@ -73,16 +72,16 @@ func (m *maze) SetSquare(row int, col int, val int) {
 }
 
 func (m *maze) SetWall(row1 int, col1 int, row2 int, col2 int, remove bool) {
-	//For direction: 1 = up, 2 = down, 3 = right, 4 = left
-	//for removing: true = remove, false = add
+	// For direction: 1 = up, 2 = down, 3 = right, 4 = left
+	// For removing: true = remove, false = add
 
 	//TODO error checking to make sure the nodes are next to each other
 	index1 := getMazeIndex(m, row1, col1)
 	index2 := getMazeIndex(m, row2, col2)
 
-	//adding an edge removes a wall
-	//removing an edge adds a wall
-	//this is because graph algorithms can only travel over edges, so they must be gaps in the wall
+	// adding an edge removes a wall
+	// removing an edge adds a wall
+	// this is because graph algorithms can only travel over edges, so they must be gaps in the wall
 	if remove {
 		m.g.AddEdge(index1, index2)
 	} else {
@@ -95,15 +94,15 @@ func (m *maze) SetWall(row1 int, col1 int, row2 int, col2 int, remove bool) {
 func randomizeMaze(m *maze, density int) {
 	for row := 0; row < m.height-1; row++ {
 		for col := 0; col < m.width-1; col++ {
-			//randomize edge below
+			// randomize edge below
 			m.SetWall(row, col, row+1, col, rand.Intn(density) < 10)
-			//randomize edge to the right
+			// randomize edge to the right
 			m.SetWall(row, col, row, col+1, rand.Intn(density) < 10)
 		}
-		//randomize just below for the right column
+		// randomize just below for the right column
 		m.SetWall(row, m.width-1, row+1, m.width-1, rand.Intn(density) < 10)
 	}
-	//randomize just to the right for the bottom row, and nothing for the bottom right node
+	// randomize just to the right for the bottom row, and nothing for the bottom right node
 	for col := 0; col < m.width-1; col++ {
 		m.SetWall(m.height-1, col, m.height-1, col+1, rand.Intn(density) < 10)
 	}
@@ -126,10 +125,13 @@ func possibleNeighbors(m *maze, row int, col int) [][]int {
 	return neighbors
 }
 
-// createDFSMaze generates a new maze using backtracking DFS
+// createDFSMaze generates a new maze using backtracking DFS.
+// First, it fills the maze with walls.
+// Then it runs DFS with no end condition, stopping once every node has been visited once.
+// Every time DFS moves between two nodes, it removes the wall in its way.
 func createDFSMaze(m *maze) {
-	//wipe maze, filling with no edges (so all walls)
-	randomizeMaze(m, 1000000000)
+	// wipe maze, filling with all walls
+	m.setAllWalls(true)
 
 	visited := make([][]bool, m.height, m.height)
 	for i := range visited {
@@ -142,7 +144,7 @@ func createDFSMaze(m *maze) {
 func createDFSMazeRecursive(m *maze, row int, col int, visited *[][]bool) {
 	(*visited)[row][col] = true
 
-	//nothing has neighbors because everything is wiped
+	// nothing has neighbors because everything is wiped
 	neighbors := possibleNeighbors(m, row, col)
 	for len(neighbors) > 0 {
 		index := rand.Intn(len(neighbors))
@@ -157,8 +159,8 @@ func createDFSMazeRecursive(m *maze, row int, col int, visited *[][]bool) {
 }
 
 func (m *maze) fillPath(path []int) {
-	//reverse path to draw from starting location
-	//skip the first item which overwrites the solution
+	// reverse path to draw from starting location
+	// skip the first item which overwrites the solution
 	for i := len(path) - 1; i >= 1; i-- {
 		row, col := getMazeCoords(m, path[i])
 		m.SetSquare(row, col, 2)

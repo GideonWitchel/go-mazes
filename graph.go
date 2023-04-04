@@ -47,8 +47,8 @@ func addEdge(n1 *node, n2 *node) {
 	n2.neighbors = append(n2.neighbors, makeNeighbor(n1, 1))
 }
 func (g *graph) AddEdge(i1 int, i2 int) {
-	//no duplicate edges
-	//assumes edges are not directed
+	// no duplicate edges
+	// assumes edges are not directed
 	for _, adj := range g.nodes[i1].neighbors {
 		if adj.n.index == i2 {
 			return
@@ -93,12 +93,12 @@ func getIndex(g *graph, n *node) int {
 }
 
 func (g *graph) Print() {
-	//TODO cut off excess ", "
+	// TODO cut off excess ", "
 	for nodeIndex, currentNode := range g.nodes {
-		//index and value of the node
+		// index and value of the node
 		fmt.Printf("%v (%v) | [", nodeIndex, currentNode.val)
 		for _, adj := range currentNode.neighbors {
-			//index and value of each neighbor
+			// index and value of each neighbor
 			fmt.Printf("%v, ", getIndex(g, adj.n))
 		}
 		fmt.Print("]\n")

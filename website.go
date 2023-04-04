@@ -21,30 +21,29 @@ func toStyle(node mazeNode) template.CSS {
 	}
 
 	if node.up {
-		out += "border-top-color: black; border-top-width: thick; "
+		out += "border-top-style: solid; border-top-width: thick; "
 	} else {
-		out += "border-top-color: LightGray; "
+		out += "border-top-style: none; "
 	}
 
 	if node.down {
-		out += "border-bottom-color: black; border-bottom-width: thick; "
+		out += "border-bottom-style: solid; border-bottom-width: thick; "
 	} else {
-		out += "border-bottom-color: LightGray; "
+		out += "border-bottom-style: none; "
 	}
 
 	if node.right {
-		out += "border-right-color: black; border-right-width: thick; "
+		out += "border-right-style: solid; border-right-width: thick; "
 	} else {
-		out += "border-right-color: LightGray; "
+		out += "border-right-style: none; "
 	}
 
 	if node.left {
-		out += "border-left-color: black; border-left-width: thick; "
+		out += "border-left-style: solid; border-left-width: thick; "
 	} else {
-		out += "border-left-color: LightGray; "
+		out += "border-left-style: none; "
 	}
 
-	out += "border-style: solid;"
 	return template.CSS(out)
 }
 
@@ -63,9 +62,9 @@ func mazeSliceToStyle(mazeVals [][]mazeNode) [][]template.CSS {
 var tpl = template.Must(template.ParseFiles("templates/index.html"))
 
 func makeMaze(w http.ResponseWriter, r *http.Request, algo int) {
-	//algo defines the maze generation algorithm
-	//1 = random
-	//2 = DFS
+	// algo defines the maze generation algorithm
+	// 1 = random
+	// 2 = DFS
 
 	width := 40
 	height := 20

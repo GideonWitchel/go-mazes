@@ -13,8 +13,8 @@ type mazeNode struct {
 func makeMazeNode(m *maze, row int, col int) mazeNode {
 	var newMazeNode mazeNode
 	newMazeNode.val = m.g.nodes[getMazeIndex(m, row, col)].val
-	//an edge is the absence of a wall
-	//If it has no edge, it has a wall
+	// An edge is the absence of a wall
+	// If it has no edge, it has a wall
 	if row == 0 || !m.g.HasEdge(getMazeIndex(m, row, col), getMazeIndex(m, row-1, col)) {
 		newMazeNode.up = true
 	}
@@ -32,7 +32,7 @@ func makeMazeNode(m *maze, row int, col int) mazeNode {
 }
 
 func mazeToSlice(m *maze) [][]mazeNode {
-	//contains the values of every node
+	// contains the values of every node
 	nodes := make([][]mazeNode, m.height)
 	for row := 0; row < m.height; row++ {
 		newRow := make([]mazeNode, m.width)
@@ -65,7 +65,7 @@ func (m *maze) Print() {
 		for col := 0; col < m.width-1; col++ {
 			printNode(m.g.nodes[index].val)
 
-			//an edge is the absence of a wall
+			// an edge is the absence of a wall
 			if m.g.HasEdge(index, index+1) {
 				fmt.Print(" ")
 			} else {
@@ -73,17 +73,17 @@ func (m *maze) Print() {
 			}
 			index++
 		}
-		//right column, doesn't check for edge
+		// right column, doesn't check for edge
 		printNode(m.g.nodes[index].val)
 		fmt.Print("\n")
 
-		//print edge values between rows, unless it's the last row
+		// print edge values between rows, unless it's the last row
 		if row == m.height-1 {
 			return
 		}
 		index -= m.width - 1
 		for col := 0; col < m.width; col++ {
-			//an edge is the absence of a wall
+			// an edge is the absence of a wall
 			if m.g.HasEdge(index, index+m.width) {
 				fmt.Print("  ")
 			} else {
@@ -99,8 +99,8 @@ func (m *maze) Print() {
 func printSolution(m *maze) {
 	ok, path := dfs(&m.g, 3, 0)
 	if ok {
-		//reverse path to draw from starting location
-		//skip the first item which overwrites the solution
+		// reverse path to draw from starting location
+		// skip the first item which overwrites the solution
 		for i := len(*path) - 1; i >= 1; i-- {
 			row, col := getMazeCoords(m, (*path)[i])
 			m.SetSquare(row, col, 2)
