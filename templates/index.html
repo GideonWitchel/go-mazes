@@ -5,15 +5,50 @@
     <title>Go Mazes</title>
 
     <script>
+        let tickSpeed = {{ .TickSpeed }};
+        let steps = {{ .MPath }} ;
 
+        window.addEventListener("load", function(){
+            //set the maze to draw asynchronously
+            drawMaze(0);
+        });
+
+        function getObjFromCoords(index){
+            let row = steps[index][0]
+            let col = steps[index][1]
+
+            let maze = document.getElementById("maze");
+            //Pick the first row
+            let r = maze.firstElementChild.firstElementChild;
+            //Step to the correct row
+            for (let i = 0; i < row; i++){
+                r = r.nextElementSibling;
+            }
+            //Pick the first column
+            let node = r.firstElementChild;
+            //step to the correct column
+            for (let i = 0; i < col; i++){
+                node = node.nextElementSibling
+            }
+            return node
+        }
+
+        async function drawMaze(currentIndex) {
+            let node = getObjFromCoords(currentIndex)
+            node.style.backgroundColor = "green"
+
+            if (currentIndex < steps.length-1) {
+                //asynchronously repeat
+                currentIndex += 1
+                setTimeout(() => drawMaze(currentIndex), tickSpeed);
+            }
+        }
     </script>
 </head>
 <body>
-    <table style="border-collapse: collapse">
-        {{ range . }}
-        <tr>
-            {{ range . }}
-            <th style="{{.}}">     </th>
+    <table style="border-collapse: collapse" id="maze">
+        {{ range .MStyles }}<tr>
+            {{ range . }}<th style="{{.}}">     </th>
             {{ end }}
         </tr>
         {{ end }}
