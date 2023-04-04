@@ -6,31 +6,6 @@ import (
 	"strconv"
 )
 
-var tpl = template.Must(template.ParseFiles("templates/index.html"))
-
-func indexHandler(w http.ResponseWriter, r *http.Request) {
-	maze := initMaze(5, 10)
-
-	sparsity := 3
-	out, err := strconv.Atoi(r.URL.Query().Get("sparsity"))
-	if err == nil {
-		sparsity = out
-	}
-
-	randomizeMaze(maze, sparsity)
-	maze.SetSquare(4, 9, 3)
-
-	ok, path := dfs(&maze.g, 3, 0)
-	if ok {
-		maze.fillPath(*path)
-	}
-
-	mazeVals := mazeToSlice(maze)
-	mazeStyles := mazeSliceToStyle(mazeVals)
-
-	tpl.Execute(w, mazeStyles)
-}
-
 func toStyle(node mazeNode) template.CSS {
 	out := ""
 
@@ -46,25 +21,25 @@ func toStyle(node mazeNode) template.CSS {
 	}
 
 	if node.up {
-		out += "border-top-color: black; "
+		out += "border-top-color: black; border-top-width: thick; "
 	} else {
 		out += "border-top-color: LightGray; "
 	}
 
 	if node.down {
-		out += "border-bottom-color: black; "
+		out += "border-bottom-color: black; border-bottom-width: thick; "
 	} else {
 		out += "border-bottom-color: LightGray; "
 	}
 
 	if node.right {
-		out += "border-right-color: black; "
+		out += "border-right-color: black; border-right-width: thick; "
 	} else {
 		out += "border-right-color: LightGray; "
 	}
 
 	if node.left {
-		out += "border-left-color: black; "
+		out += "border-left-color: black; border-left-width: thick; "
 	} else {
 		out += "border-left-color: LightGray; "
 	}
@@ -85,18 +60,68 @@ func mazeSliceToStyle(mazeVals [][]mazeNode) [][]template.CSS {
 	return mazeStyles
 }
 
+var tpl = template.Must(template.ParseFiles("templates/index.html"))
+
+func makeMaze(w http.ResponseWriter, r *http.Request, algo int) {
+	//algo defines the maze generation algorithm
+	//1 = random
+	//2 = DFS
+
+	width := 40
+	height := 20
+	out, err := strconv.Atoi(r.URL.Query().Get("width"))
+	if err == nil && out > 2 {
+		width = out
+	}
+	out, err = strconv.Atoi(r.URL.Query().Get("height"))
+	if err == nil && out > 2 {
+		height = out
+	}
+
+	maze := initMaze(height, width)
+	maze.SetSquare(height-1, width-1, 3)
+
+	switch algo {
+	case 1:
+		density := 15
+		out, err := strconv.Atoi(r.URL.Query().Get("density"))
+		if err == nil && out > 0 {
+			density = out
+		}
+		randomizeMaze(maze, density)
+	case 2:
+		createDFSMaze(maze)
+	}
+
+	ok, path := dfs(&maze.g, 3, 0)
+	if ok {
+		maze.fillPath(*path)
+	} else {
+		print("No Valid DFS\n")
+	}
+
+	mazeValues := mazeToSlice(maze)
+	mazeStyles := mazeSliceToStyle(mazeValues)
+
+	tpl.Execute(w, mazeStyles)
+}
+
+func dfsHandler(w http.ResponseWriter, r *http.Request) {
+	makeMaze(w, r, 2)
+}
+
+func randomHandler(w http.ResponseWriter, r *http.Request) {
+	makeMaze(w, r, 1)
+}
+
 func main() {
-	/*maze := initMaze(5, 10)
-	randomizeMaze(maze, 2)
-	maze.SetSquare(4, 9, 3)
-	maze.Print()
-	print("\n\n")
-
-	printSolution(maze)*/
-
 	mux := http.NewServeMux()
 
-	mux.HandleFunc("/", indexHandler)
+	//mux.HandleFunc("/", dfsHandler)
+
+	mux.HandleFunc("/dfs", dfsHandler)
+	mux.HandleFunc("/random", randomHandler)
+
 	port := "3000"
 	http.ListenAndServe(":"+port, mux)
 }

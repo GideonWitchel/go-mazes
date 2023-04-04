@@ -57,30 +57,30 @@ func (g *graph) AddEdge(i1 int, i2 int) {
 	addEdge(g.nodes[i1], g.nodes[i2])
 }
 
-// unidirectional
+// removeEdge is unidirectional
 func removeEdge(g *graph, i1 int, i2 int) {
 	for i, adj := range g.nodes[i1].neighbors {
 		if adj.n.index == i2 {
 			g.nodes[i1].neighbors = append(g.nodes[i1].neighbors[:i], g.nodes[i1].neighbors[i+1:]...)
+			break
 		}
 	}
 }
 
-// bidirectional
+// RemoveEdge bidirectional
 func (g *graph) RemoveEdge(i1 int, i2 int) {
 	removeEdge(g, i1, i2)
 	removeEdge(g, i2, i1)
 }
 
 // HasEdge assumes bidirectional
-// TODO I had to swap the return values. I don't know why.
 func (g *graph) HasEdge(i1 int, i2 int) bool {
 	for _, adj := range g.nodes[i1].neighbors {
 		if adj.n.index == i2 {
-			return false
+			return true
 		}
 	}
-	return true
+	return false
 }
 
 func getIndex(g *graph, n *node) int {
