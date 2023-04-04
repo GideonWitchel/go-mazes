@@ -166,3 +166,15 @@ func (m *maze) fillPath(path []int) {
 		m.SetSquare(row, col, 2)
 	}
 }
+
+func getSeekerLocations(m *maze, numSeekers int) []int {
+	// Math to place evenly spaced seekers in the middle of the maze
+	spacerForIndex := m.width / numSeekers
+	rowForIndex := m.height*m.width/2 - spacerForIndex/2
+	starts := make([]int, numSeekers, numSeekers)
+
+	for i := 0; i < numSeekers; i++ {
+		starts[i] = rowForIndex + spacerForIndex*i
+	}
+	return starts
+}

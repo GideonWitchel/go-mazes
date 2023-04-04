@@ -6,16 +6,40 @@
 
     <script>
         let tickSpeed = {{ .TickSpeed }};
-        let steps = {{ .MPath }} ;
+        let stepsFull = {{ .MPath }} ;
+        let bestSteps = {{ .MBestPath }} ;
 
-        window.addEventListener("load", function(){
+        const timer = ms => new Promise(res => setTimeout(res, ms))
+
+        window.addEventListener("load", async function () {
             //set the maze to draw asynchronously
-            drawMaze(0);
+            await drawAllPaths();
+            await timer(1000);
+            await drawBestPath();
         });
 
-        function getObjFromCoords(index){
-            let row = steps[index][0]
-            let col = steps[index][1]
+        async function drawAllPaths(){
+            const promises = stepsFull.map(async step => {
+                await drawMaze(step, "lightblue", 0, 1);
+            })
+            await Promise.all(promises);
+        }
+
+        async function drawBestPath() {
+            await drawMaze(bestSteps, "green", 1, 0);
+        }
+
+        async function drawMaze(steps, color, startOffset, endOffset) {
+            for (let i = startOffset; i < steps.length-endOffset; i++) {
+                let node = getObjFromCoords(steps, i);
+                node.style.backgroundColor = color;
+                await timer(tickSpeed);
+            }
+        }
+
+        function getObjFromCoords(steps, index){
+            let row = steps[index][0];
+            let col = steps[index][1];
 
             let maze = document.getElementById("maze");
             //Pick the first row
@@ -28,21 +52,11 @@
             let node = r.firstElementChild;
             //step to the correct column
             for (let i = 0; i < col; i++){
-                node = node.nextElementSibling
+                node = node.nextElementSibling;
             }
-            return node
+            return node;
         }
 
-        async function drawMaze(currentIndex) {
-            let node = getObjFromCoords(currentIndex)
-            node.style.backgroundColor = "green"
-
-            if (currentIndex < steps.length-1) {
-                //asynchronously repeat
-                currentIndex += 1
-                setTimeout(() => drawMaze(currentIndex), tickSpeed);
-            }
-        }
     </script>
 </head>
 <body>
