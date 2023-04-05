@@ -3,6 +3,34 @@
 <head>
     <meta charset="UTF-8">
     <title>Go Mazes</title>
+    <style>
+        th {
+            border-style: none;
+            background-color: white;
+            border-width: thick;
+        }
+        .b-t {
+            border-top-style: solid;
+        }
+        .b-b {
+            border-bottom-style: solid;
+        }
+        .b-r {
+            border-right-style:solid;
+        }
+        .b-l {
+            border-left-style: solid;
+        }
+        .c-search {
+            background-color: lightblue;
+        }
+        .c-solution {
+            background-color: green;
+        }
+        .c-goal {
+            background-color: yellow;
+        }
+    </style>
 
     <script>
         let tickSpeed = {{ .TickSpeed }};
@@ -21,20 +49,20 @@
 
         async function drawAllPaths(){
             const promises = stepsFull.map(async step => {
-                await drawMaze(step, "lightblue", 0, 1, repeats);
+                await drawMaze(step, "c-search", 0, 1, repeats);
             })
             await Promise.all(promises);
         }
 
         async function drawBestPath() {
-            await drawMaze(bestSteps, "green", 1, 0, repeats);
+            await drawMaze(bestSteps, "c-solution", 1, 0, repeats);
         }
 
         async function drawMaze(steps, color, startOffset, endOffset, repeats){
             for (let i = startOffset; i < steps.length-endOffset; i++) {
                 for (let j = 0; j < repeats; j++) {
                     if(i < steps.length-endOffset) {
-                        getObjFromCoords(steps, i).style.backgroundColor = color;
+                        getObjFromCoords(steps, i).classList.add(color);
                         i++;
                     }
                 }
@@ -69,7 +97,7 @@
 <body>
     <table style="border-collapse: collapse" id="maze">
         {{ range .MStyles }}<tr>
-            {{ range . }}<th style="{{.}}">     </th>
+            {{ range . }}<th class="{{.}}">     </th>
             {{ end }}
         </tr>
         {{ end }}

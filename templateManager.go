@@ -19,38 +19,26 @@ func toStyle(node mazeNode) template.CSS {
 	out := ""
 
 	switch node.val {
-	case 0:
-		out += "background-color: white; "
+	//case 0 is ignored because the default is white
 	case 1:
-		out += "background-color: blue; "
+		out += "c-search "
 	case 2:
-		out += "background-color: green; "
+		out += "c-solution "
 	case 3:
-		out += "background-color: yellow; "
+		out += "c-goal "
 	}
 
 	if node.up {
-		out += "border-top-style: solid; border-top-width: thick; "
-	} else {
-		out += "border-top-style: none; "
+		out += "b-t "
 	}
-
 	if node.down {
-		out += "border-bottom-style: solid; border-bottom-width: thick; "
-	} else {
-		out += "border-bottom-style: none; "
+		out += "b-b "
 	}
-
 	if node.right {
-		out += "border-right-style: solid; border-right-width: thick; "
-	} else {
-		out += "border-right-style: none; "
+		out += "b-r "
 	}
-
 	if node.left {
-		out += "border-left-style: solid; border-left-width: thick; "
-	} else {
-		out += "border-left-style: none; "
+		out += "b-l "
 	}
 
 	return template.CSS(out)
