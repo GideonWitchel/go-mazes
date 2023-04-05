@@ -8,10 +8,11 @@ import (
 type TemplateData struct {
 	// Template data structs must have exported names so the template Executer can read them.
 
-	MStyles   [][]template.CSS
-	MPath     template.JS
-	MBestPath template.JS
-	TickSpeed template.JS
+	MStyles     [][]template.CSS
+	MPath       template.JS
+	MBestPath   template.JS
+	TickSpeed   template.JS
+	PathRepeats template.JS
 }
 
 func toStyle(node mazeNode) template.CSS {
@@ -99,7 +100,7 @@ func pathsToJs(m *maze, paths *[][]int) template.JS {
 }
 
 // fillTemplateData executes the search algorithms and processes their results.
-func fillTemplateData(m *maze, animate bool, tickSpeed int) *TemplateData {
+func fillTemplateData(m *maze, animate bool, tickSpeed int, repeats int) *TemplateData {
 	//TODO sometimes DFS cheats on the right side of a large maze - not sure if it is a visual bug or a data structure bug
 
 	// Run DFS to find the best solution
@@ -117,7 +118,7 @@ func fillTemplateData(m *maze, animate bool, tickSpeed int) *TemplateData {
 		bestPath = template.JS("[]")
 	}
 
-	startI := getSeekerLocations(m, 4)
+	startI := getSeekerLocations(m, 50)
 
 	// Run Multithreaded DFS to find a solution
 	multithreadedOk, paths := dfsMultithreaded(&m.g, 3, startI)
@@ -138,10 +139,11 @@ func fillTemplateData(m *maze, animate bool, tickSpeed int) *TemplateData {
 
 	// Convert data into the types that a template can take
 	tplData := TemplateData{
-		MStyles:   mazeStyles,
-		MPath:     mazePath,
-		MBestPath: bestPath,
-		TickSpeed: template.JS(strconv.Itoa(tickSpeed)),
+		MStyles:     mazeStyles,
+		MPath:       mazePath,
+		MBestPath:   bestPath,
+		TickSpeed:   template.JS(strconv.Itoa(tickSpeed)),
+		PathRepeats: template.JS(strconv.Itoa(repeats)),
 	}
 	return &tplData
 }

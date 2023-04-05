@@ -5,12 +5,14 @@ import (
 	"html/template"
 	"net/http"
 	"strconv"
+	"time"
 )
 
 var tpl = template.Must(template.ParseFiles("templates/index.html"))
 
 // makeMaze converts a http request into a http response
 func makeMazeResponse(w http.ResponseWriter, r *http.Request, algo int) {
+	timeStart := time.Now()
 	// algo defines the maze generation algorithm
 	// 1 = random
 	// 2 = DFS
@@ -19,7 +21,9 @@ func makeMazeResponse(w http.ResponseWriter, r *http.Request, algo int) {
 	width := 40
 	height := 20
 	tickSpeed := 1
+	repeats := 1
 	animate := true
+	density := 15
 	inputWidth, err := strconv.Atoi(r.URL.Query().Get("width"))
 	if err == nil && inputWidth > 2 {
 		width = inputWidth
@@ -36,25 +40,30 @@ func makeMazeResponse(w http.ResponseWriter, r *http.Request, algo int) {
 	if inputAnimate == "f" {
 		animate = false
 	}
+	inputRepeats, err := strconv.Atoi(r.URL.Query().Get("repeats"))
+	if err == nil && inputRepeats > 0 {
+		repeats = inputRepeats
+	}
+	inputDensity, err := strconv.Atoi(r.URL.Query().Get("density"))
+	if err == nil && inputDensity > 0 {
+		density = inputDensity
+	}
 
 	// Init maze with a given algorithm
 	maze := initMaze(height, width)
 	maze.SetSquare(height-1, width-1, 3)
 	switch algo {
 	case 1:
-		density := 15
-		inputDensity, err := strconv.Atoi(r.URL.Query().Get("density"))
-		if err == nil && inputDensity > 0 {
-			density = inputDensity
-		}
 		randomizeMaze(maze, density)
 	case 2:
 		createDFSMaze(maze)
 	}
 
-	tplData := fillTemplateData(maze, animate, tickSpeed)
+	tplData := fillTemplateData(maze, animate, tickSpeed, repeats)
 
 	err = tpl.Execute(w, tplData)
+	timeEnd := time.Now()
+	fmt.Printf("Served! in %v ms or %v us\n", timeEnd.UnixMilli()-timeStart.UnixMilli(), timeEnd.UnixMicro()-timeStart.UnixMicro())
 	if err != nil {
 		fmt.Println(err)
 		return

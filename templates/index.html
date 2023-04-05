@@ -8,6 +8,7 @@
         let tickSpeed = {{ .TickSpeed }};
         let stepsFull = {{ .MPath }} ;
         let bestSteps = {{ .MBestPath }} ;
+        let repeats = {{ .PathRepeats }}
 
         const timer = ms => new Promise(res => setTimeout(res, ms))
 
@@ -20,22 +21,28 @@
 
         async function drawAllPaths(){
             const promises = stepsFull.map(async step => {
-                await drawMaze(step, "lightblue", 0, 1);
+                await drawMaze(step, "lightblue", 0, 1, repeats);
             })
             await Promise.all(promises);
         }
 
         async function drawBestPath() {
-            await drawMaze(bestSteps, "green", 1, 0);
+            await drawMaze(bestSteps, "green", 1, 0, repeats);
         }
 
-        async function drawMaze(steps, color, startOffset, endOffset) {
+        async function drawMaze(steps, color, startOffset, endOffset, repeats){
             for (let i = startOffset; i < steps.length-endOffset; i++) {
-                let node = getObjFromCoords(steps, i);
-                node.style.backgroundColor = color;
+                for (let j = 0; j < repeats; j++) {
+                    if(i < steps.length-endOffset) {
+                        getObjFromCoords(steps, i).style.backgroundColor = color;
+                        i++;
+                    }
+                }
+                i--;
                 await timer(tickSpeed);
             }
         }
+
 
         function getObjFromCoords(steps, index){
             let row = steps[index][0];
