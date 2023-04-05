@@ -8,10 +8,15 @@ import (
 type TemplateData struct {
 	// Template data structs must have exported names so the template Executer can read them.
 
-	MStyles     [][]template.CSS
-	MPath       template.JS
-	MBestPath   template.JS
-	TickSpeed   template.JS
+	// MStyles contains the CSS Style text for every node
+	MStyles [][]template.CSS
+	// MPath contains the first-executed searching path
+	MPath template.JS
+	// MBestPath contains the second-executed solution path
+	MBestPath template.JS
+	// TickSpeed determines how fast each node updates when drawing paths
+	TickSpeed template.JS
+	// PathRepeats determines the number of nodes updated for each tick when drawing paths
 	PathRepeats template.JS
 }
 
@@ -90,18 +95,31 @@ func pathsToJs(m *maze, paths *[][]int) template.JS {
 	return out
 }
 
-// fillTemplateData executes the search algorithms and processes their results.
-func fillTemplateData(m *maze, animate bool, tickSpeed int, repeats int) *TemplateData {
+func fillTemplateBFS(m *maze, tickSpeed int, repeats int) *TemplateData {
+	// Run BFS to find a solution
+	bfsOk, bfsPath, bfsSolution := bfs(&m.g, 3, 0)
+
+	var mazePath template.JS
+	// Even if it fails, show what it got before it failed
+	mazePath = "[" + pathToJs(m, bfsPath) + "]"
+
+	var bestPath template.JS
+	if bfsOk {
+		bestPath = pathToJs(m, bfsSolution)
+	} else {
+		print("No Valid BFS\n")
+		bestPath = template.JS("[]")
+	}
+
+	return fillTemplateData(m, mazePath, bestPath, tickSpeed, repeats)
+}
+
+func fillTemplateDFS(m *maze, tickSpeed int, repeats int) *TemplateData {
 	// Run DFS to find a solution
 	dfsOk, dfsPath := dfs(&m.g, 3, 0)
 	var bestPath template.JS
 	if dfsOk {
-		if !animate {
-			m.fillPath(*dfsPath)
-			bestPath = template.JS("[]")
-		} else {
-			bestPath = pathToJs(m, dfsPath)
-		}
+		bestPath = pathToJs(m, dfsPath)
 	} else {
 		print("No Valid DFS\n")
 		bestPath = template.JS("[]")
@@ -111,17 +129,17 @@ func fillTemplateData(m *maze, animate bool, tickSpeed int, repeats int) *Templa
 	startI := getSeekerLocations(m, 4)
 	multithreadedOk, paths := dfsMultithreaded(&m.g, 3, startI)
 	var mazePath template.JS
-	if multithreadedOk != -1 {
-		if !animate {
-			mazePath = template.JS("[]")
-		} else {
-			mazePath = pathsToJs(m, paths)
-		}
-	} else {
-		print("No Valid DFS\n")
-		mazePath = template.JS("[]")
+	// Even if it fails, show what it got before it failed
+	mazePath = pathsToJs(m, paths)
+	if multithreadedOk == -1 {
+		print("No Valid Multi-threaded DFS\n")
 	}
 
+	return fillTemplateData(m, mazePath, bestPath, tickSpeed, repeats)
+}
+
+// fillTemplateData executes the search algorithms and processes their results.
+func fillTemplateData(m *maze, mazePath template.JS, bestPath template.JS, tickSpeed int, repeats int) *TemplateData {
 	mazeValues := mazeToSlice(m)
 	mazeStyles := mazeSliceToStyle(mazeValues)
 

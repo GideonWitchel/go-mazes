@@ -12,9 +12,9 @@ import (
 var tpl = template.Must(template.ParseFiles("templates/index.html"))
 
 // makeMaze converts a http request into a http response
-func makeMazeResponse(w http.ResponseWriter, r *http.Request, algo int) {
+func makeMazeResponse(w http.ResponseWriter, r *http.Request, generationAlgorithm int) {
 	timeStart := time.Now()
-	// algo defines the maze generation algorithm
+	// generationAlgorithm defines the maze generation algorithm
 	// 1 = random
 	// 2 = DFS
 
@@ -23,8 +23,8 @@ func makeMazeResponse(w http.ResponseWriter, r *http.Request, algo int) {
 	height := 90
 	tickSpeed := 1
 	repeats := 20
-	animate := true
 	density := 15
+	solve := "bfs"
 
 	// Parse values from GET request, if they exist
 	inputWidth, err := strconv.Atoi(r.URL.Query().Get("width"))
@@ -39,10 +39,6 @@ func makeMazeResponse(w http.ResponseWriter, r *http.Request, algo int) {
 	if err == nil && inputTickSpeed > 0 {
 		tickSpeed = inputTickSpeed
 	}
-	inputAnimate := r.URL.Query().Get("animate")
-	if inputAnimate == "f" {
-		animate = false
-	}
 	inputRepeats, err := strconv.Atoi(r.URL.Query().Get("repeats"))
 	if err == nil && inputRepeats > 0 {
 		repeats = inputRepeats
@@ -51,20 +47,31 @@ func makeMazeResponse(w http.ResponseWriter, r *http.Request, algo int) {
 	if err == nil && inputDensity > 0 {
 		density = inputDensity
 	}
+	inputSolve := r.URL.Query().Get("solve")
+	if inputSolve == "dfs" {
+		solve = "dfs"
+	}
 
 	// TODO there are impossible patterns (closed off areas) on large mazes - not sure if it is a visual bug or a data structure bug
 
 	// Init maze with a given algorithm
 	maze := initMaze(height, width)
 	maze.SetSquare(height-1, width-1, 3)
-	switch algo {
+	switch generationAlgorithm {
 	case 1:
 		randomizeMaze(maze, density)
 	case 2:
 		createDFSMaze(maze)
 	}
 
-	tplData := fillTemplateData(maze, animate, tickSpeed, repeats)
+	// Solve maze with a given algorithm
+	var tplData *TemplateData
+	switch solve {
+	case "bfs":
+		tplData = fillTemplateBFS(maze, tickSpeed, repeats)
+	case "dfs":
+		tplData = fillTemplateDFS(maze, tickSpeed, repeats)
+	}
 
 	err = tpl.Execute(w, tplData)
 	if err != nil {
