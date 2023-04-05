@@ -18,13 +18,15 @@ func makeMazeResponse(w http.ResponseWriter, r *http.Request, algo int) {
 	// 1 = random
 	// 2 = DFS
 
-	// Parse values from GET request, if they exist
-	width := 40
-	height := 20
+	// Default configuration variables
+	width := 180
+	height := 90
 	tickSpeed := 1
-	repeats := 1
+	repeats := 20
 	animate := true
 	density := 15
+
+	// Parse values from GET request, if they exist
 	inputWidth, err := strconv.Atoi(r.URL.Query().Get("width"))
 	if err == nil && inputWidth > 2 {
 		width = inputWidth
@@ -65,16 +67,17 @@ func makeMazeResponse(w http.ResponseWriter, r *http.Request, algo int) {
 	tplData := fillTemplateData(maze, animate, tickSpeed, repeats)
 
 	err = tpl.Execute(w, tplData)
-	timeEnd := time.Now()
-	//Manually calculate with ns to have control over rounding
-	timeEndNs := timeEnd.UnixNano() - timeStart.UnixNano()
-	timeEndUs := float64(timeEndNs) / 1000.0
-	timeEndMs := timeEndUs / 1000.0
-	fmt.Printf("Served! in %.0f ms and %.0f us\n", timeEndMs, timeEndUs-(math.Floor(timeEndMs)*1000.0))
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
+
+	timeEnd := time.Now()
+	// Manually calculate times with ns to have control over rounding
+	timeEndNs := timeEnd.UnixNano() - timeStart.UnixNano()
+	timeEndUs := float64(timeEndNs) / 1000.0
+	timeEndMs := timeEndUs / 1000.0
+	fmt.Printf("Served! in %.0f ms and %.0f us\n", timeEndMs, timeEndUs-(math.Floor(timeEndMs)*1000.0))
 }
 
 func dfsHandler(w http.ResponseWriter, r *http.Request) {
@@ -86,23 +89,10 @@ func randomHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-	/*maze := initMaze(100, 300)
-	maze.SetSquare(300-1, 300-1, 3)
-	createDFSMaze(maze)
-
-	// Run DFS to find the solution
-	startIndecies := []int{0, 30149, 60299}
-	ok, paths := dfsMultithreaded(&maze.g, 3, startIndecies)
-	if ok != -1 {
-		fmt.Println(paths)
-	} else {
-		print("No Valid DFS\n")
-	}*/
 
 	mux := http.NewServeMux()
 
-	//mux.HandleFunc("/", dfsHandler)
-
+	mux.HandleFunc("/", dfsHandler)
 	mux.HandleFunc("/dfs", dfsHandler)
 	mux.HandleFunc("/random", randomHandler)
 

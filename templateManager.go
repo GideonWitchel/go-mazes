@@ -21,7 +21,7 @@ func toStyle(node mazeNode) template.CSS {
 	// See index.html for what all these css classes are.
 	// These define colors.
 	switch node.val {
-	// case 0 is ignored because the default is white
+	// Case 0 is ignored because the default is white
 	case 1:
 		out += "c-search "
 	case 2:
@@ -71,7 +71,7 @@ func pathToJs(m *maze, path *[]int) template.JS {
 		out += "[" + strconv.Itoa(row) + ", " + strconv.Itoa(col) + "], "
 	}
 
-	// cut off ending comma
+	// Cut off trailing comma
 	out = out[:len(out)-2]
 	out += "]"
 
@@ -84,7 +84,7 @@ func pathsToJs(m *maze, paths *[][]int) template.JS {
 		out += pathToJs(m, &path)
 		out += ", "
 	}
-	// cut off ending comma
+	// Cut off trailing comma
 	out = out[:len(out)-2]
 	out += template.JS("]")
 	return out
@@ -92,7 +92,7 @@ func pathsToJs(m *maze, paths *[][]int) template.JS {
 
 // fillTemplateData executes the search algorithms and processes their results.
 func fillTemplateData(m *maze, animate bool, tickSpeed int, repeats int) *TemplateData {
-	// Run DFS to find the best solution
+	// Run DFS to find a solution
 	dfsOk, dfsPath := dfs(&m.g, 3, 0)
 	var bestPath template.JS
 	if dfsOk {
@@ -107,9 +107,8 @@ func fillTemplateData(m *maze, animate bool, tickSpeed int, repeats int) *Templa
 		bestPath = template.JS("[]")
 	}
 
-	startI := getSeekerLocations(m, 4)
-
 	// Run Multithreaded DFS to find a solution
+	startI := getSeekerLocations(m, 4)
 	multithreadedOk, paths := dfsMultithreaded(&m.g, 3, startI)
 	var mazePath template.JS
 	if multithreadedOk != -1 {

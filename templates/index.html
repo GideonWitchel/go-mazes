@@ -33,15 +33,14 @@
     </style>
 
     <script>
-        let tickSpeed = {{ .TickSpeed }};
+        let tickSpeed = {{ .TickSpeed }} ;
         let stepsFull = {{ .MPath }} ;
         let bestSteps = {{ .MBestPath }} ;
-        let repeats = {{ .PathRepeats }}
+        let repeats = {{ .PathRepeats }} ;
 
         const timer = ms => new Promise(res => setTimeout(res, ms))
 
         window.addEventListener("load", async function () {
-            //set the maze to draw asynchronously
             await drawAllPaths();
             await timer(1000);
             await drawBestPath();
@@ -58,6 +57,11 @@
             await drawMaze(bestSteps, "c-solution", 1, 0, repeats);
         }
 
+        // drawMaze goes through every index in steps and adds a class based on color.
+        // startOffset is the index of steps that drawMaze starts on (to traverse full array, 0).
+        // endOffset is how many before the end of steps that drawMaze will stop (to traverse full array, 0).
+        // repeats is the number of cells drawMaze will fill for each time it delays with timer.
+        // - This is necessary because waiting for timer, even at 0 tickSpeed, is very slow.
         async function drawMaze(steps, color, startOffset, endOffset, repeats){
             for (let i = startOffset; i < steps.length-endOffset; i++) {
                 for (let j = 0; j < repeats; j++) {
@@ -76,15 +80,15 @@
             let col = steps[index][1];
 
             let maze = document.getElementById("maze");
-            //Pick the first row
+            // Pick the first row
             let r = maze.firstElementChild.firstElementChild;
-            //Step to the correct row
+            // Step to the correct row
             for (let i = 0; i < row; i++){
                 r = r.nextElementSibling;
             }
-            //Pick the first column
+            // Pick the first column
             let node = r.firstElementChild;
-            //step to the correct column
+            // Step to the correct column
             for (let i = 0; i < col; i++){
                 node = node.nextElementSibling;
             }

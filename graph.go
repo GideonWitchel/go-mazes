@@ -49,9 +49,10 @@ func addEdge(n1 *node, n2 *node) {
 	n1.neighbors = append(n1.neighbors, makeNeighbor(n2, 1))
 	n2.neighbors = append(n2.neighbors, makeNeighbor(n1, 1))
 }
+
+// AddEdge assumes edges are not directed, adding edges to the other node for both i1 and i2
 func (g *graph) AddEdge(i1 int, i2 int) {
-	// no duplicate edges
-	// assumes edges are not directed
+	// Avoid duplicate edges
 	for _, adj := range g.nodes[i1].neighbors {
 		if adj.n.index == i2 {
 			return
@@ -98,10 +99,10 @@ func getIndex(g *graph, n *node) int {
 func (g *graph) Print() {
 	// TODO cut off excess ", "
 	for nodeIndex, currentNode := range g.nodes {
-		// index and value of the node
+		// Index and value of the node
 		fmt.Printf("%v (%v) | [", nodeIndex, currentNode.val)
 		for _, adj := range currentNode.neighbors {
-			// index and value of each neighbor
+			// Index and value of each neighbor
 			fmt.Printf("%v, ", getIndex(g, adj.n))
 		}
 		fmt.Print("]\n")
@@ -111,7 +112,6 @@ func (g *graph) Print() {
 // DFS finds the first node with a given value and returns:
 // - a boolean which is true if the value is accessible
 // - a slice of indexes with the order of nodes to get there, starting with the node of the desired value and ending with the starting node
-// DFS is not parallelized
 func dfs(g *graph, val int, startIndex int) (exists bool, path *[]int) {
 	pathOut := make([]int, 0)
 	visited := make([]bool, len(g.nodes), len(g.nodes))
@@ -163,7 +163,7 @@ func dfsMultithreaded(g *graph, val int, startIndecies []int) (exists int, p *[]
 
 	for i, start := range startIndecies {
 		pathsOut[i] = make([]int, 0)
-		//i+1 is the thread index. It is the path index plus one so every ID is greater than 0, because 0 is unclaimed.
+		// i+1 is the thread index. It is the path index plus one so every ID is greater than 0, because 0 is unclaimed.
 		visited.Add(1)
 		go dfsRecursiveSynchronizer(g.nodes[start], val, &visited, &pathsOut[i], i+1)
 	}
@@ -176,31 +176,31 @@ func dfsRecursiveSynchronizer(n *node, val int, visited *visited, myPath *[]int,
 	dfsRecursiveMultithreaded(n, val, visited, myPath, index)
 }
 
-// dfsRecursive returns true if the value is found and false if the value is not
-// It writes to pathsOut its solution based on the index passed in from dfsRecursive
+// dfsRecursive returns true if the value is found and false if the value is not.
+// It writes to pathsOut its solution based on the index passed in from dfsRecursive.
 func dfsRecursiveMultithreaded(n *node, val int, visited *visited, myPath *[]int, index int) bool {
 	visited.Lock()
-	//end the search if another path found the target value
+	// End the search if another path found the target value.
 	if visited.found != -1 {
 		visited.Unlock()
 		return true
 	}
-	//end the search if this node has already been claimed
+	// End the search if this node has already been claimed.
 	if (*(*visited).v)[n.index] != 0 {
 		visited.Unlock()
 		return false
 	}
-	//end the search if this node contains the target value
+	// End the search if this node contains the target value.
 	if n.val == val {
 		visited.found = index
 		visited.Unlock()
 		return true
 	}
-	//otherwise, claim the node
+	// Otherwise, claim the node.
 	(*(*visited).v)[n.index] = index - 1
 	visited.Unlock()
 
-	//append the path as it goes on, not in reverse, to show all searching strands
+	// Append the path as it goes on, not in reverse, to show all searching strands.
 	*myPath = append(*myPath, n.index)
 
 	for _, currentNeighbor := range n.neighbors {

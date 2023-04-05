@@ -1,9 +1,9 @@
 package main
 
-import "fmt"
-
 type mazeNode struct {
-	val   int
+	val int
+	// If true, there is a wall in that direction.
+	// If false, there is no wall in that direction (which is an edge in the underlying graph).
 	up    bool
 	down  bool
 	right bool
@@ -31,8 +31,8 @@ func makeMazeNode(m *maze, row int, col int) mazeNode {
 	return newMazeNode
 }
 
+// mazeToSlice outputs a 2d slice that contains the values of every node as well as boolean values representing the existence of a wall up, down, right, and left.
 func mazeToSlice(m *maze) [][]mazeNode {
-	// contains the values of every node
 	nodes := make([][]mazeNode, m.height)
 	for row := 0; row < m.height; row++ {
 		newRow := make([]mazeNode, m.width)
@@ -42,72 +42,4 @@ func mazeToSlice(m *maze) [][]mazeNode {
 		nodes[row] = newRow
 	}
 	return nodes
-}
-
-func printNode(val int) {
-	switch val {
-	case 0:
-		fmt.Print("□")
-	case 1:
-		fmt.Print("■")
-	case 2:
-		fmt.Print("⧇")
-	case 3:
-		fmt.Print("☆")
-	default:
-		fmt.Println("Impossible Value")
-	}
-}
-
-func (m *maze) Print() {
-	index := 0
-	for row := 0; row < m.height; row++ {
-		for col := 0; col < m.width-1; col++ {
-			printNode(m.g.nodes[index].val)
-
-			// an edge is the absence of a wall
-			if m.g.HasEdge(index, index+1) {
-				fmt.Print(" ")
-			} else {
-				fmt.Print("|")
-			}
-			index++
-		}
-		// right column, doesn't check for edge
-		printNode(m.g.nodes[index].val)
-		fmt.Print("\n")
-
-		// print edge values between rows, unless it's the last row
-		if row == m.height-1 {
-			return
-		}
-		index -= m.width - 1
-		for col := 0; col < m.width; col++ {
-			// an edge is the absence of a wall
-			if m.g.HasEdge(index, index+m.width) {
-				fmt.Print("  ")
-			} else {
-				fmt.Print("— ")
-			}
-			index++
-		}
-		fmt.Print("\n")
-	}
-}
-
-// printSolution assumes the goal is 3
-func printSolution(m *maze) {
-	ok, path := dfs(&m.g, 3, 0)
-	if ok {
-		// reverse path to draw from starting location
-		// skip the first item which overwrites the solution
-		for i := len(*path) - 1; i >= 1; i-- {
-			row, col := getMazeCoords(m, (*path)[i])
-			m.SetSquare(row, col, 2)
-			m.Print()
-			print("\n\n")
-		}
-	} else {
-		print("No Valid DFS\n")
-	}
 }
