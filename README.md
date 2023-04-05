@@ -6,3 +6,4 @@
 
 # Maze Solving Algorithms:
 - DFS (Single-threaded)
+- DFS (Multi-threaded)

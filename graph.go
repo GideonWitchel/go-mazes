@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"sync"
-	"time"
 )
 
 type neighbor struct {
@@ -141,91 +140,74 @@ func dfsRecursive(n *node, val int, visited *[]bool, pathOut *[]int) bool {
 }
 
 type visited struct {
-	v     *[]bool
+	// v is a visited array that also keeps track of the thread ID of whoever claimed the node.
+	// int default is 0, so all thread IDs must be greater than 0, and 0 is unclaimed.
+	v *[]int
+	// found represents the path ID (thread ID - 1) of whoever found the solution node
 	found int
 	sync.Mutex
+	sync.WaitGroup
 }
 
-type paths struct {
-	p *[][]int
-	sync.Mutex
-}
-
-// dfsMultithreaded finds a value in a graph using a number of simultaneous dfs searchs with a shared visited list.
+// dfsMultithreaded finds a value in a graph using a number of simultaneous dfs searches with a shared visited list.
 // exists is an index which specifies which search ended up finding the value in the paths array.
 // If exists is -1, there is valid path to the solution from any starting index.
 func dfsMultithreaded(g *graph, val int, startIndecies []int) (exists int, p *[][]int) {
 	pathsOut := make([][]int, len(startIndecies), len(startIndecies))
-	pathsStruct := paths{
-		p: &pathsOut,
-	}
-	visitedArray := make([]bool, len(g.nodes), len(g.nodes))
+
+	visitedArray := make([]int, len(g.nodes), len(g.nodes))
 	visited := visited{
 		v:     &visitedArray,
 		found: -1,
 	}
 
 	for i, start := range startIndecies {
-		//println("Starting thread " + strconv.Itoa(i))
-		//visited.Lock()
-		go dfsRecursiveMultithreaded(g.nodes[start], val, &visited, &pathsStruct, i)
-		//time.Sleep(time.Nanosecond)
+		pathsOut[i] = make([]int, 0)
+		//i+1 is the thread index. It is the path index plus one so every ID is greater than 0, because 0 is unclaimed.
+		visited.Add(1)
+		go dfsRecursiveSynchronizer(g.nodes[start], val, &visited, &pathsOut[i], i+1)
 	}
-	// TODO Actually check if subprocesses are done
-	time.Sleep(time.Second)
-	return visited.found, pathsStruct.p
+	visited.Wait()
+	return visited.found, &pathsOut
+}
+
+func dfsRecursiveSynchronizer(n *node, val int, visited *visited, myPath *[]int, index int) {
+	defer visited.Done()
+	dfsRecursiveMultithreaded(n, val, visited, myPath, index)
 }
 
 // dfsRecursive returns true if the value is found and false if the value is not
 // It writes to pathsOut its solution based on the index passed in from dfsRecursive
-func dfsRecursiveMultithreaded(n *node, val int, visited *visited, pathsOut *paths, index int) {
-	//visited.Unlock()
-	//println(strconv.Itoa(index) + " | " + strconv.Itoa(n.index) + " : " + " is starting")
-	//end the search if another path found the target value
+func dfsRecursiveMultithreaded(n *node, val int, visited *visited, myPath *[]int, index int) bool {
 	visited.Lock()
+	//end the search if another path found the target value
 	if visited.found != -1 {
-		//println(strconv.Itoa(index) + " | " + strconv.Itoa(n.index) + " : " + " is done")
-		return
+		visited.Unlock()
+		return true
 	}
-	//otherwise, start this node's search
-	(*(*visited).v)[n.index] = true
-	//println(strconv.Itoa(index) + " | " + strconv.Itoa(n.index) + " : " + " is starting a search")
+	//end the search if this node has already been claimed
+	if (*(*visited).v)[n.index] != 0 {
+		visited.Unlock()
+		return false
+	}
+	//end the search if this node contains the target value
+	if n.val == val {
+		visited.found = index
+		visited.Unlock()
+		return true
+	}
+	//otherwise, claim the node
+	(*(*visited).v)[n.index] = index - 1
 	visited.Unlock()
 
 	//append the path as it goes on, not in reverse, to show all searching strands
-	pathsOut.Lock()
-	(*pathsOut.p)[index] = append((*pathsOut.p)[index], n.index)
-	//println(strconv.Itoa(index) + " | " + strconv.Itoa(n.index) + " : " + " appended a path")
-	pathsOut.Unlock()
-
-	//end search if found the value
-	if n.val == val {
-		visited.Lock()
-		visited.found = index
-		//println(strconv.Itoa(index) + " | " + strconv.Itoa(n.index) + " : " + " is done")
-		visited.Unlock()
-		return
-	}
+	*myPath = append(*myPath, n.index)
 
 	for _, currentNeighbor := range n.neighbors {
-		visited.Lock()
-		if !(*(*visited).v)[currentNeighbor.n.index] {
-			visited.Unlock()
-			//println(strconv.Itoa(index) + " | " + strconv.Itoa(n.index) + " : " + " found a valid node to move on to")
-
-			dfsRecursiveMultithreaded(currentNeighbor.n, val, visited, pathsOut, index)
-
-			//if found the value, end search
-			visited.Lock()
-			if visited.found != -1 {
-				visited.Unlock()
-				//println(strconv.Itoa(index) + " | " + strconv.Itoa(n.index) + " : " + " is done2")
-				return
-			}
-			visited.Unlock()
-		} else {
-			//println(strconv.Itoa(index) + " | " + strconv.Itoa(n.index) + " : " + " found an invalid node")
-			visited.Unlock()
+		if dfsRecursiveMultithreaded(currentNeighbor.n, val, visited, myPath, index) {
+			return true
 		}
 	}
+
+	return false
 }

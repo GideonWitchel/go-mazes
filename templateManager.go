@@ -18,8 +18,10 @@ type TemplateData struct {
 func toStyle(node mazeNode) template.CSS {
 	out := ""
 
+	// See index.html for what all these css classes are.
+	// These define colors.
 	switch node.val {
-	//case 0 is ignored because the default is white
+	// case 0 is ignored because the default is white
 	case 1:
 		out += "c-search "
 	case 2:
@@ -28,6 +30,7 @@ func toStyle(node mazeNode) template.CSS {
 		out += "c-goal "
 	}
 
+	// These define borders.
 	if node.up {
 		out += "b-t "
 	}
@@ -68,7 +71,7 @@ func pathToJs(m *maze, path *[]int) template.JS {
 		out += "[" + strconv.Itoa(row) + ", " + strconv.Itoa(col) + "], "
 	}
 
-	//cut off ending comma
+	// cut off ending comma
 	out = out[:len(out)-2]
 	out += "]"
 
@@ -81,7 +84,7 @@ func pathsToJs(m *maze, paths *[][]int) template.JS {
 		out += pathToJs(m, &path)
 		out += ", "
 	}
-	//cut off ending comma
+	// cut off ending comma
 	out = out[:len(out)-2]
 	out += template.JS("]")
 	return out
@@ -89,8 +92,6 @@ func pathsToJs(m *maze, paths *[][]int) template.JS {
 
 // fillTemplateData executes the search algorithms and processes their results.
 func fillTemplateData(m *maze, animate bool, tickSpeed int, repeats int) *TemplateData {
-	//TODO sometimes DFS cheats on the right side of a large maze - not sure if it is a visual bug or a data structure bug
-
 	// Run DFS to find the best solution
 	dfsOk, dfsPath := dfs(&m.g, 3, 0)
 	var bestPath template.JS
@@ -106,7 +107,7 @@ func fillTemplateData(m *maze, animate bool, tickSpeed int, repeats int) *Templa
 		bestPath = template.JS("[]")
 	}
 
-	startI := getSeekerLocations(m, 50)
+	startI := getSeekerLocations(m, 4)
 
 	// Run Multithreaded DFS to find a solution
 	multithreadedOk, paths := dfsMultithreaded(&m.g, 3, startI)

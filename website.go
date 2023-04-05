@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"html/template"
+	"math"
 	"net/http"
 	"strconv"
 	"time"
@@ -49,6 +50,8 @@ func makeMazeResponse(w http.ResponseWriter, r *http.Request, algo int) {
 		density = inputDensity
 	}
 
+	// TODO there are impossible patterns (closed off areas) on large mazes - not sure if it is a visual bug or a data structure bug
+
 	// Init maze with a given algorithm
 	maze := initMaze(height, width)
 	maze.SetSquare(height-1, width-1, 3)
@@ -63,7 +66,11 @@ func makeMazeResponse(w http.ResponseWriter, r *http.Request, algo int) {
 
 	err = tpl.Execute(w, tplData)
 	timeEnd := time.Now()
-	fmt.Printf("Served! in %v ms or %v us\n", timeEnd.UnixMilli()-timeStart.UnixMilli(), timeEnd.UnixMicro()-timeStart.UnixMicro())
+	//Manually calculate with ns to have control over rounding
+	timeEndNs := timeEnd.UnixNano() - timeStart.UnixNano()
+	timeEndUs := float64(timeEndNs) / 1000.0
+	timeEndMs := timeEndUs / 1000.0
+	fmt.Printf("Served! in %.0f ms and %.0f us\n", timeEndMs, timeEndUs-(math.Floor(timeEndMs)*1000.0))
 	if err != nil {
 		fmt.Println(err)
 		return

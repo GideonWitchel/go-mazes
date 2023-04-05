@@ -49,7 +49,7 @@
 
         async function drawAllPaths(){
             const promises = stepsFull.map(async step => {
-                await drawMaze(step, "c-search", 0, 1, repeats);
+                await drawMaze(step, "c-search", 0, 0, repeats);
             })
             await Promise.all(promises);
         }
@@ -70,7 +70,6 @@
                 await timer(tickSpeed);
             }
         }
-
 
         function getObjFromCoords(steps, index){
             let row = steps[index][0];
