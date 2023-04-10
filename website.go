@@ -50,6 +50,8 @@ func makeMazeResponse(w http.ResponseWriter, r *http.Request, generationAlgorith
 	inputSolve := r.URL.Query().Get("solve")
 	if inputSolve == "dfs" {
 		solve = "dfs"
+	} else if inputSolve == "bfsmulti" {
+		solve = "bfsmulti"
 	}
 
 	// TODO there are impossible patterns (closed off areas) on large mazes - not sure if it is a visual bug or a data structure bug
@@ -71,6 +73,8 @@ func makeMazeResponse(w http.ResponseWriter, r *http.Request, generationAlgorith
 		tplData = fillTemplateBFS(maze, tickSpeed, repeats)
 	case "dfs":
 		tplData = fillTemplateDFS(maze, tickSpeed, repeats)
+	case "bfsmulti":
+		tplData = fillTemplateBFSMultithreaded(maze, tickSpeed, repeats)
 	}
 
 	err = tpl.Execute(w, tplData)

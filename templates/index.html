@@ -37,10 +37,14 @@
         let stepsFull = {{ .MPath }} ;
         let bestSteps = {{ .MBestPath }} ;
         let repeats = {{ .PathRepeats }} ;
+        let halt = false;
 
         const timer = ms => new Promise(res => setTimeout(res, ms))
 
         window.addEventListener("load", async function () {
+            window.addEventListener("click", async function () {
+                halt = !halt;
+            });
             await drawAllPaths();
             await timer(1000);
             await drawBestPath();
@@ -71,6 +75,9 @@
                     }
                 }
                 i--;
+                while (halt) {
+                    await timer(tickSpeed);
+                }
                 await timer(tickSpeed);
             }
         }

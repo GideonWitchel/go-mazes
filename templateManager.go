@@ -114,6 +114,25 @@ func fillTemplateBFS(m *maze, tickSpeed int, repeats int) *TemplateData {
 	return fillTemplateData(m, mazePath, bestPath, tickSpeed, repeats)
 }
 
+func fillTemplateBFSMultithreaded(m *maze, tickSpeed int, repeats int) *TemplateData {
+	// Run BFS to find a solution
+	bfsOk, bfsPath, bfsSolution := bfsMultithreaded(&m.g, 3, 0, 4)
+
+	var mazePath template.JS
+	// Even if it fails, show what it got before it failed
+	mazePath = pathsToJs(m, bfsPath)
+
+	var bestPath template.JS
+	if bfsOk {
+		bestPath = pathToJs(m, bfsSolution)
+	} else {
+		print("No Valid BFS\n")
+		bestPath = template.JS("[]")
+	}
+
+	return fillTemplateData(m, mazePath, bestPath, tickSpeed, repeats)
+}
+
 func fillTemplateDFS(m *maze, tickSpeed int, repeats int) *TemplateData {
 	// Run DFS to find a solution
 	dfsOk, dfsPath := dfs(&m.g, 3, 0)
