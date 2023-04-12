@@ -175,6 +175,54 @@ func bfsRecursive(g *graph, queue *[]int, val int, visited *[]bool, parents *[]i
 	return false, -1
 }
 
+func bfsIterative(g *graph, val int, startIndex int) (exists bool, path *[]int, solution *[]int) {
+	pathOut := make([]int, 0)
+	solutionOut := make([]int, 0)
+	visited := make([]bool, len(g.nodes), len(g.nodes))
+	parents := make([]int, len(g.nodes), len(g.nodes))
+	queue := make([]int, 0, 0)
+	// TODO Swap queue's data structure from a slice to a linked list because a slice has awful performance for popping from the front.
+
+	queue = append(queue, startIndex)
+	visited[startIndex] = true
+	parents[startIndex] = -1
+
+	success := false
+	valIndex := -1
+
+	for len(queue) != 0 {
+		currentNode := g.nodes[queue[0]]
+		queue = queue[1:]
+		pathOut = append(pathOut, currentNode.index)
+
+		if currentNode.val == val {
+			success = true
+			valIndex = currentNode.index
+			break
+		}
+
+		for _, currentNeighbor := range currentNode.neighbors {
+			if !visited[currentNeighbor.n.index] {
+				visited[currentNeighbor.n.index] = true
+				queue = append(queue, currentNeighbor.n.index)
+				parents[currentNeighbor.n.index] = currentNode.index
+			}
+		}
+	}
+
+	// Backtrack through parents to find the shortest path.
+	if success {
+		// Start at the goal node.
+		i := valIndex
+		for i != -1 {
+			solutionOut = append(solutionOut, i)
+			i = parents[i]
+		}
+	}
+
+	return success, &pathOut, &solutionOut
+}
+
 type lockedPaths struct {
 	p [][]int
 	sync.Mutex
