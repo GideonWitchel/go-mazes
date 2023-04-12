@@ -1,6 +1,8 @@
 package main
 
-import "sync"
+import (
+	"sync"
+)
 
 // DFS finds the first node with a given value and returns:
 // - a boolean which is true if the value is accessible
@@ -223,40 +225,36 @@ func bfsIterative(g *graph, val int, startIndex int) (exists bool, path *[]int, 
 	return success, &pathOut, &solutionOut
 }
 
-type lockedPaths struct {
-	p [][]int
-	sync.Mutex
-}
-
 type bfsShared struct {
 	visited []bool
 	// parents is an array of nodes' parents for finding the optimal path
 	parents []int
-	// found stores the index of the solution node. If it is -1, the solution has not been found.
-	solution int
 	// queue is a queue of the next values to test
 	queue []int
-	// nextID is the next thread ID to use when making a new thread
-	nextID int
-	// numThreads is the number of active threads
-	numThreads int
+	// found stores the index of the solution node. If it is -1, the solution has not been found.
+	solution int
 	sync.Mutex
 	sync.WaitGroup
 }
 
-func bfsMultithreaded(g *graph, val int, startIndex int, maxThreads int) (exists bool, paths *[][]int, solution *[]int) {
+type safePaths struct {
+	p []*[]int
+	sync.Mutex
+}
+
+// TODO Crashes in a randomized maze, no matter the size, but is fine for all DFS generated mazes
+func bfsMultithreaded(g *graph, val int, startIndex int, maxThreads int) (exists bool, paths *[]*[]int, solution *[]int) {
 	if maxThreads < 1 || startIndex < 0 {
 		return false, nil, nil
 	}
 
-	pathsOut := lockedPaths{
-		p: make([][]int, 0),
+	pathsOut := safePaths{
+		p: make([]*[]int, 0),
 	}
-
 	solutionOut := make([]int, 0)
 	v := make([]bool, len(g.nodes), len(g.nodes))
 	p := make([]int, len(g.nodes), len(g.nodes))
-	q := make([]int, 0, 0)
+	q := make([]int, 0)
 	// TODO Swap queue's data structure from a slice to a linked list because a slice has awful performance for popping from the front.
 
 	q = append(q, startIndex)
@@ -264,16 +262,19 @@ func bfsMultithreaded(g *graph, val int, startIndex int, maxThreads int) (exists
 	p[startIndex] = -1
 
 	bfsData := bfsShared{
-		visited:    v,
-		parents:    p,
-		queue:      q,
-		solution:   -1,
-		nextID:     0,
-		numThreads: 0,
+		visited:  v,
+		parents:  p,
+		queue:    q,
+		solution: -1,
 	}
 
-	bfsData.Add(1)
-	go bfsRecursiveSynchronizer(g, val, &bfsData, &pathsOut, maxThreads)
+	for i := 0; i < maxThreads; i++ {
+		// Not sure if I need to lock around WaitGroup actions.
+		bfsData.Lock()
+		bfsData.Add(1)
+		bfsData.Unlock()
+		go bfsRebootThread(g, &bfsData, val, &pathsOut)
+	}
 	bfsData.Wait()
 
 	// Backtrack through parents to find the shortest path.
@@ -289,95 +290,57 @@ func bfsMultithreaded(g *graph, val int, startIndex int, maxThreads int) (exists
 	return bfsData.solution != -1, &pathsOut.p, &solutionOut
 }
 
-func bfsRecursiveSynchronizer(g *graph, val int, data *bfsShared, paths *lockedPaths, maxThreads int) {
-	defer data.Done()
-	defer print("Done!")
-
-	data.queue = append(data.queue, 0)
-	data.parents[0] = -1
+func bfsMultithreadedSubprocess(g *graph, data *bfsShared, paths *safePaths, pathOut *[]int, val int) {
+	defer bfsRebootThread(g, data, val, paths)
 
 	for {
-		//Always lock data before paths
 		data.Lock()
-		if data.numThreads < maxThreads {
-			//check for termination
-			if data.solution != -1 {
-				data.Unlock()
-				return
+		//end if the search is over or the solution has been found
+		if len(data.queue) == 0 || data.solution != -1 {
+			data.Unlock()
+			return
+		}
+
+		currentNode := g.nodes[data.queue[0]]
+		data.queue = data.queue[1:]
+		data.Unlock()
+
+		*pathOut = append(*pathOut, currentNode.index)
+
+		if currentNode.val == val {
+			data.Lock()
+			data.solution = currentNode.index
+			data.Unlock()
+			return
+		}
+
+		for _, currentNeighbor := range currentNode.neighbors {
+			data.Lock()
+			if !data.visited[currentNeighbor.n.index] {
+				data.visited[currentNeighbor.n.index] = true
+				data.queue = append(data.queue, currentNeighbor.n.index)
+				data.parents[currentNeighbor.n.index] = currentNode.index
 			}
-
-			if len(data.queue) != 0 {
-				paths.Lock()
-
-				paths.p = append(paths.p, make([]int, 0))
-				currID := data.nextID
-				data.nextID += 1
-				pathPointer := &paths.p[currID]
-				data.numThreads++
-
-				paths.Unlock()
-				data.Unlock()
-
-				go bfsRecursiveMultithreadedContainer(g, val, data, pathPointer, currID)
-			} else {
-				data.Unlock()
-			}
+			data.Unlock()
 		}
 	}
 }
 
-func bfsRecursiveMultithreadedContainer(g *graph, val int, data *bfsShared, myPath *[]int, id int) {
-	bfsRecursiveMultithreaded(g, val, data, myPath, id)
-	data.Lock()
-	data.numThreads--
-	data.Unlock()
-}
+func bfsRebootThread(g *graph, bfsData *bfsShared, val int, paths *safePaths) {
+	//time.Sleep(time.Second)
+	bfsData.Lock()
+	if bfsData.solution == -1 {
+		bfsData.Unlock()
 
-func bfsRecursiveMultithreaded(g *graph, val int, data *bfsShared, myPath *[]int, id int) {
-	// Any thread can grab from the queue in any order, adding all the neighbors from their grabbed node
+		newPath := make([]int, 0)
+		paths.Lock()
+		paths.p = append(paths.p, &newPath)
+		paths.Unlock()
 
-	if id == 1 {
-		print("")
+		bfsMultithreadedSubprocess(g, bfsData, paths, &newPath, val)
+
+	} else {
+		bfsData.Done()
+		bfsData.Unlock()
 	}
-	data.Lock()
-	// End the search if the search has failed
-	if len(data.queue) == 0 {
-		data.Unlock()
-		return
-	}
-	// End the search if another path found the target value.
-	if data.solution != -1 {
-		data.Unlock()
-		return
-	}
-
-	currentNode := g.nodes[data.queue[0]]
-	// End the search if this node has already been claimed.
-	//if data.visited[currentNode.index] == true {
-	//	data.Unlock()
-	//	return
-	//}
-
-	// Otherwise, claim the node.
-	data.queue = data.queue[1:]
-	// End the search if this node contains the target value.
-	if currentNode.val == val {
-		data.solution = currentNode.index
-		data.Unlock()
-		return
-	}
-	data.Unlock()
-
-	// Append the path as it goes on, not in reverse, to show all searching strands.
-	*myPath = append(*myPath, currentNode.index)
-	for _, currentNeighbor := range currentNode.neighbors {
-		data.Lock()
-		if !data.visited[currentNeighbor.n.index] {
-			data.queue = append(data.queue, currentNeighbor.n.index)
-			data.parents[currentNeighbor.n.index] = currentNode.index
-		}
-		data.Unlock()
-	}
-
-	bfsRecursiveMultithreaded(g, val, data, myPath, id)
 }

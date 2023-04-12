@@ -4,6 +4,18 @@
     <meta charset="UTF-8">
     <title>Go Mazes</title>
     <style>
+        html {
+            height: 100%;
+        }
+        body {
+            height: 100%;
+        }
+        #container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100%;
+        }
         th {
             border-style: none;
             background-color: white;
@@ -105,12 +117,14 @@
     </script>
 </head>
 <body>
-    <table style="border-collapse: collapse" id="maze">
-        {{ range .MStyles }}<tr>
-            {{ range . }}<th class="{{.}}">     </th>
+    <div id="container">
+        <table style="border-collapse: collapse" id="maze">
+            {{ range .MStyles }}<tr>
+                {{ range . }}<th class="{{.}}">     </th>
+                {{ end }}
+            </tr>
             {{ end }}
-        </tr>
-        {{ end }}
-    </table>
+        </table>
+    </div>
 </body>
 </html>

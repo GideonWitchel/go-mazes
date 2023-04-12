@@ -95,6 +95,18 @@ func pathsToJs(m *maze, paths *[][]int) template.JS {
 	return out
 }
 
+func pointerPathsToJs(m *maze, paths *[]*[]int) template.JS {
+	out := template.JS("[")
+	for _, path := range *paths {
+		out += pathToJs(m, path)
+		out += ", "
+	}
+	// Cut off trailing comma
+	out = out[:len(out)-2]
+	out += template.JS("]")
+	return out
+}
+
 func fillTemplateBFS(m *maze, tickSpeed int, repeats int) *TemplateData {
 	// Run BFS to find a solution
 	bfsOk, bfsPath, bfsSolution := bfs(&m.g, 3, 0)
@@ -120,7 +132,7 @@ func fillTemplateBFSMultithreaded(m *maze, tickSpeed int, repeats int) *Template
 
 	var mazePath template.JS
 	// Even if it fails, show what it got before it failed
-	mazePath = pathsToJs(m, bfsPath)
+	mazePath = pointerPathsToJs(m, bfsPath)
 
 	var bestPath template.JS
 	if bfsOk {
