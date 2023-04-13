@@ -71,13 +71,13 @@
         }
 
         async function drawBestPath() {
-            //wait for button press to draw best path, if button hasn't already been pressed.
+            // Wait for button press to draw the best path, if button hasn't already been pressed.
             while (!halt) {
                 await timer(tickSpeed);
             }
-            //put halt back to normal so drawMaze doesn't instantly pause
+            // Put halt back to normal so drawMaze doesn't instantly pause
             halt = !halt
-            await drawMaze(bestSteps, "Gray", 1, 0, repeats);
+            await drawMaze(bestSteps, "green", 1, 0, repeats);
         }
 
         // drawMaze goes through every index in steps and adds a class based on color.
@@ -89,7 +89,15 @@
             for (let i = startOffset; i < steps.length-endOffset; i++) {
                 for (let j = 0; j < repeats; j++) {
                     if(i < steps.length-endOffset) {
-                        getObjFromCoords(steps, i).style.backgroundColor = color;
+                        let goalObj = getObjFromCoords(steps, i)
+                        goalObj.style.backgroundColor = color;
+                        // Temporary solution to visibility of the correct path
+                        // TODO replace with manipulation of random color generator
+                        if (color === "green") {
+                            goalObj.style.opacity = "1.0";
+                        }  else {
+                            goalObj.style.opacity = "0.5";
+                        }
                         i++;
                     }
                 }

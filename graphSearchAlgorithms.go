@@ -225,6 +225,98 @@ func bfsIterative(g *graph, val int, startIndex int) (exists bool, path *[]int, 
 	return success, &pathOut, &solutionOut
 }
 
+// Multithreaded BFS has a thread manager and a number of senders.
+// The thread manager starts a number of senders.
+// The senders share an input and output channel.
+// The thread manager sends new indexes to check into the input channel, based on the outputs.
+// The senders send back the neighbors of the indexes in the input channel.
+// The thread manager analyzes the output of the senders to determine if nodes are visited
+// If they are not, it will put them into the parents array and back into the input queue.
+// Once the solution is found, the thread manager will close the input queue which kills the senders.
+// The thread manager will calculate the solution path and return.
+// If there are no more items in the both channels and all threads are dormant, there is no valid solution, so threadManager shuts down.
+
+type childParentPair struct {
+	parent   int
+	child    int
+	threadID int
+}
+
+// bfsMultithreaded returns references to the success, the paths array, and the solution array
+func bfsMultithreaded(g *graph, goalVal int, startIndex int, maxThreads int) (bool, *[][]int, *[]int) {
+	// init
+	// Channels have arbitrary buffer sizes - maybe they should be the size of maxThreads?
+	parentIn := make(chan int, 1000)
+	childOut := make(chan childParentPair, 1000)
+	visited := make([]bool, len(g.nodes), len(g.nodes))
+	parents := make([]int, len(g.nodes), len(g.nodes))
+	paths := make([][]int, maxThreads, maxThreads)
+	var tracker sync.WaitGroup
+
+	childOut <- childParentPair{parent: -1, child: g.nodes[startIndex].index}
+
+	for i := 0; i < maxThreads; i++ {
+		tracker.Add(1)
+		go bfsThread(g, parentIn, childOut, goalVal, &tracker, i)
+	}
+
+	indexOfGoalNode := -1
+	for {
+		// Needs to check if visited and set if visited for results
+		pair := <-childOut
+		if pair.child == -1 {
+			// Terminate
+			indexOfGoalNode = pair.parent
+			close(parentIn)
+			break
+		}
+		if !visited[pair.child] {
+			visited[pair.child] = true
+			parents[pair.child] = pair.parent
+			paths[pair.threadID] = append(paths[pair.threadID], pair.child)
+			parentIn <- pair.child
+		}
+		// Check if there is no solution
+		if len(parentIn) == 0 && len(childOut) == 0 {
+			// TODO Make sure there are no threads currently in progress
+			// close(parentIn)
+			// break
+
+		}
+	}
+	// Cleanup
+	tracker.Wait()
+	close(childOut)
+
+	solution := make([]int, 0)
+	if indexOfGoalNode != -1 {
+		// Backtrack to find the solution
+		i := indexOfGoalNode
+		for i != -1 {
+			solution = append(solution, i)
+			i = parents[i]
+		}
+	}
+
+	return indexOfGoalNode != -1, &paths, &solution
+}
+
+func bfsThread(g *graph, parentIn chan int, childOut chan childParentPair, val int, tracker *sync.WaitGroup, Id int) {
+	defer tracker.Done()
+	for p := range parentIn {
+		currentNode := g.nodes[p]
+		for _, currentNeighbor := range currentNode.neighbors {
+			childOut <- childParentPair{parent: p, child: currentNeighbor.n.index, threadID: Id}
+			// Check for termination after sending the value so the parents array knows where the solution is
+			if currentNeighbor.n.val == val {
+				// Terminate
+				childOut <- childParentPair{parent: currentNeighbor.n.index, child: -1, threadID: Id}
+			}
+		}
+	}
+}
+
+/*
 type bfsShared struct {
 	visited []bool
 	// parents is an array of nodes' parents for finding the optimal path
@@ -386,3 +478,4 @@ func bfsMultithreadedSubprocess(threadData *threadDone, g *graph, data *bfsShare
 		}
 	}
 }
+*/
