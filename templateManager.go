@@ -23,15 +23,8 @@ type TemplateData struct {
 func toStyle(node mazeNode) template.CSS {
 	out := ""
 
-	// See index.html for what all these css classes are.
-	// These define colors.
-	switch node.val {
-	// Case 0 is ignored because the default is white
-	case 1:
-		out += "c-search "
-	case 2:
-		out += "c-solution "
-	case 3:
+	// assumes the maze is empty to start, except for solution.
+	if node.val == 3 {
 		out += "c-goal "
 	}
 

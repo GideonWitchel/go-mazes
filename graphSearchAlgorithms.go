@@ -127,7 +127,7 @@ func bfs(g *graph, val int, startIndex int) (exists bool, path *[]int, solution 
 	visited := make([]bool, len(g.nodes), len(g.nodes))
 	parents := make([]int, len(g.nodes), len(g.nodes))
 	queue := make([]int, 0, 0)
-	// TODO Swap queue's data structure from a slice to a linked list because a slice has awful performance for popping from the front.
+	// TODO Swap queue to a channel.
 
 	queue = append(queue, startIndex)
 	visited[startIndex] = true
@@ -183,7 +183,7 @@ func bfsIterative(g *graph, val int, startIndex int) (exists bool, path *[]int, 
 	visited := make([]bool, len(g.nodes), len(g.nodes))
 	parents := make([]int, len(g.nodes), len(g.nodes))
 	queue := make([]int, 0, 0)
-	// TODO Swap queue's data structure from a slice to a linked list because a slice has awful performance for popping from the front.
+	// TODO Swap queue to a channel
 
 	queue = append(queue, startIndex)
 	visited[startIndex] = true
@@ -234,7 +234,6 @@ type bfsShared struct {
 	// found stores the index of the solution node. If it is -1, the solution has not been found.
 	solution int
 	sync.Mutex
-	sync.WaitGroup
 }
 
 type safePaths struct {
@@ -242,7 +241,18 @@ type safePaths struct {
 	sync.Mutex
 }
 
-// TODO Crashes in a randomized maze, no matter the size, but is fine for all DFS generated mazes
+type threadManager struct {
+	maxThreads int
+	// WaitGroup for bfsMultithreaded to know all threads are done
+	sync.WaitGroup
+}
+
+type threadDone struct {
+	//separate data structure for the manager to know when it needs to start new threads.
+	numThreads int
+	sync.Mutex
+}
+
 func bfsMultithreaded(g *graph, val int, startIndex int, maxThreads int) (exists bool, paths *[]*[]int, solution *[]int) {
 	if maxThreads < 1 || startIndex < 0 {
 		return false, nil, nil
@@ -255,7 +265,7 @@ func bfsMultithreaded(g *graph, val int, startIndex int, maxThreads int) (exists
 	v := make([]bool, len(g.nodes), len(g.nodes))
 	p := make([]int, len(g.nodes), len(g.nodes))
 	q := make([]int, 0)
-	// TODO Swap queue's data structure from a slice to a linked list because a slice has awful performance for popping from the front.
+	// TODO Swap queue to a channel
 
 	q = append(q, startIndex)
 	v[startIndex] = true
@@ -268,14 +278,13 @@ func bfsMultithreaded(g *graph, val int, startIndex int, maxThreads int) (exists
 		solution: -1,
 	}
 
-	for i := 0; i < maxThreads; i++ {
-		// Not sure if I need to lock around WaitGroup actions.
-		bfsData.Lock()
-		bfsData.Add(1)
-		bfsData.Unlock()
-		go bfsRebootThread(g, &bfsData, val, &pathsOut)
+	tManager := threadManager{
+		maxThreads: maxThreads,
 	}
-	bfsData.Wait()
+
+	tManager.Add(1)
+	go bfsMultithreadedManager(&tManager, g, &bfsData, val, &pathsOut)
+	tManager.Wait()
 
 	// Backtrack through parents to find the shortest path.
 	if bfsData.solution != -1 {
@@ -287,11 +296,61 @@ func bfsMultithreaded(g *graph, val int, startIndex int, maxThreads int) (exists
 		}
 	}
 
+	// Ensure paths are caught up
+	pathsOut.Lock()
+	pathsOut.Unlock()
+
 	return bfsData.solution != -1, &pathsOut.p, &solutionOut
 }
 
-func bfsMultithreadedSubprocess(g *graph, data *bfsShared, paths *safePaths, pathOut *[]int, val int) {
-	defer bfsRebootThread(g, data, val, paths)
+func bfsMultithreadedManager(threadManager *threadManager, g *graph, bfsData *bfsShared, val int, paths *safePaths) {
+	defer threadManager.Done()
+
+	threadData := threadDone{
+		numThreads: 0,
+	}
+
+	for {
+		threadData.Lock()
+		if threadData.numThreads < threadManager.maxThreads {
+			threadData.Unlock()
+
+			bfsData.Lock()
+			// The second condition is needed to deap with graphs without solution but breaks real mazes.
+			// I'm pretty sure the best fix is using channels.
+			if bfsData.solution == -1 && len(bfsData.queue) > 0 {
+				bfsData.Unlock()
+
+				newPath := make([]int, 0)
+				paths.Lock()
+				paths.p = append(paths.p, &newPath)
+				paths.Unlock()
+
+				threadData.Lock()
+				threadData.numThreads++
+				threadData.Unlock()
+
+				go bfsMultithreadedSubprocess(&threadData, g, bfsData, &newPath, val)
+
+			} else {
+				bfsData.Unlock()
+				return
+			}
+
+		} else {
+			threadData.Unlock()
+		}
+	}
+}
+
+func killThread(threadData *threadDone) {
+	threadData.Lock()
+	threadData.numThreads--
+	threadData.Unlock()
+}
+
+func bfsMultithreadedSubprocess(threadData *threadDone, g *graph, data *bfsShared, pathOut *[]int, val int) {
+	defer killThread(threadData)
 
 	for {
 		data.Lock()
@@ -311,6 +370,8 @@ func bfsMultithreadedSubprocess(g *graph, data *bfsShared, paths *safePaths, pat
 			data.Lock()
 			data.solution = currentNode.index
 			data.Unlock()
+			// Do not overwrite the solution.
+			*pathOut = (*pathOut)[:len(*pathOut)-1]
 			return
 		}
 
@@ -323,24 +384,5 @@ func bfsMultithreadedSubprocess(g *graph, data *bfsShared, paths *safePaths, pat
 			}
 			data.Unlock()
 		}
-	}
-}
-
-func bfsRebootThread(g *graph, bfsData *bfsShared, val int, paths *safePaths) {
-	//time.Sleep(time.Second)
-	bfsData.Lock()
-	if bfsData.solution == -1 {
-		bfsData.Unlock()
-
-		newPath := make([]int, 0)
-		paths.Lock()
-		paths.p = append(paths.p, &newPath)
-		paths.Unlock()
-
-		bfsMultithreadedSubprocess(g, bfsData, paths, &newPath, val)
-
-	} else {
-		bfsData.Done()
-		bfsData.Unlock()
 	}
 }

@@ -33,18 +33,14 @@
         .b-l {
             border-left-style: solid;
         }
-        .c-search {
-            background-color: lightblue;
-        }
-        .c-solution {
-            background-color: green;
-        }
         .c-goal {
             background-color: yellow;
         }
+
     </style>
 
     <script>
+        // TODO Move to separate js files
         let tickSpeed = {{ .TickSpeed }} ;
         let stepsFull = {{ .MPath }} ;
         let bestSteps = {{ .MBestPath }} ;
@@ -57,20 +53,31 @@
             window.addEventListener("click", async function () {
                 halt = !halt;
             });
-            await drawAllPaths();
-            await timer(1000);
+            await drawAllPathsSequentially();
             await drawBestPath();
         });
 
-        async function drawAllPaths(){
+        async function drawAllPathsSimultaneously(){
             const promises = stepsFull.map(async step => {
-                await drawMaze(step, "c-search", 0, 0, repeats);
+                await drawMaze(step, getRandomColor(), 0, 0, repeats);
             })
             await Promise.all(promises);
         }
 
+        async function drawAllPathsSequentially() {
+            for(let i = 0; i < stepsFull.length; i++) {
+                await drawMaze(stepsFull[i], getRandomColor(), 0, 0, repeats)
+            }
+        }
+
         async function drawBestPath() {
-            await drawMaze(bestSteps, "c-solution", 1, 0, repeats);
+            //wait for button press to draw best path, if button hasn't already been pressed.
+            while (!halt) {
+                await timer(tickSpeed);
+            }
+            //put halt back to normal so drawMaze doesn't instantly pause
+            halt = !halt
+            await drawMaze(bestSteps, "Gray", 1, 0, repeats);
         }
 
         // drawMaze goes through every index in steps and adds a class based on color.
@@ -82,7 +89,7 @@
             for (let i = startOffset; i < steps.length-endOffset; i++) {
                 for (let j = 0; j < repeats; j++) {
                     if(i < steps.length-endOffset) {
-                        getObjFromCoords(steps, i).classList.add(color);
+                        getObjFromCoords(steps, i).style.backgroundColor = color;
                         i++;
                     }
                 }
@@ -112,6 +119,15 @@
                 node = node.nextElementSibling;
             }
             return node;
+        }
+
+        function getRandomColor() {
+            const letters = '0123456789ABCDEF';
+            let color = '#';
+            for (let i = 0; i < 6; i++) {
+                color += letters[Math.floor(Math.random() * 16)];
+            }
+            return color;
         }
 
     </script>
