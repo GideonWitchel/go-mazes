@@ -268,6 +268,8 @@ func bfsMultithreaded(g *graph, goalVal int, startIndex int, maxThreads int) (bo
 			// Terminate
 			indexOfGoalNode = pair.parent
 			close(parentIn)
+			// Cut off the part of the path that overwrites the solution
+			paths[pair.threadID] = paths[pair.threadID][:len(paths[pair.threadID])-1]
 			break
 		}
 		if !visited[pair.child] {
@@ -277,12 +279,11 @@ func bfsMultithreaded(g *graph, goalVal int, startIndex int, maxThreads int) (bo
 			parentIn <- pair.child
 		}
 		// Check if there is no solution
-		if len(parentIn) == 0 && len(childOut) == 0 {
-			// TODO Make sure there are no threads currently in progress
-			// close(parentIn)
-			// break
-
-		}
+		// if len(parentIn) == 0 && len(childOut) == 0 {
+		// TODO Make sure there are no threads currently in progress
+		// close(parentIn)
+		// break
+		// }
 	}
 	// Cleanup
 	tracker.Wait()
