@@ -77,7 +77,7 @@
             }
             // Put halt back to normal so drawMaze doesn't instantly pause
             halt = !halt
-            await drawMaze(bestSteps, "green", 1, 0, repeats);
+            await drawMaze(bestSteps, "red", 1, 0, repeats);
         }
 
         // drawMaze goes through every index in steps and adds a class based on color.
@@ -92,12 +92,6 @@
                         let goalObj = getObjFromCoords(steps, i)
                         goalObj.style.backgroundColor = color;
                         // Temporary solution to visibility of the correct path
-                        // TODO replace with manipulation of random color generator
-                        if (color === "green") {
-                            goalObj.style.opacity = "1.0";
-                        }  else {
-                            goalObj.style.opacity = "0.5";
-                        }
                         i++;
                     }
                 }
@@ -130,10 +124,13 @@
         }
 
         function getRandomColor() {
-            const letters = '0123456789ABCDEF';
+            // Not too dark or light
+            const firstLetters = '89ABCDE';
+            const secondLetters = '0123456789ABCDEF';
             let color = '#';
-            for (let i = 0; i < 6; i++) {
-                color += letters[Math.floor(Math.random() * 16)];
+            for (let i = 0; i < 3; i++) {
+                color += firstLetters[Math.floor(Math.random() * firstLetters.length)];
+                color += secondLetters[Math.floor(Math.random() * secondLetters.length)];
             }
             return color;
         }

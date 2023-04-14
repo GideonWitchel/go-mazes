@@ -278,12 +278,12 @@ func bfsMultithreaded(g *graph, goalVal int, startIndex int, maxThreads int) (bo
 			paths[pair.threadID] = append(paths[pair.threadID], pair.child)
 			parentIn <- pair.child
 		}
-		// Check if there is no solution
-		// if len(parentIn) == 0 && len(childOut) == 0 {
-		// TODO Make sure there are no threads currently in progress
-		// close(parentIn)
-		// break
-		// }
+		// *** IF THERE IS NO SOLUTION, THIS WILL HANG FOREVER ***
+		// This is because there is currently no way to tell if threads are in progress.
+		//if len(parentIn) == 0 && len(childOut) == 0 {
+		//close(parentIn)
+		//break
+		//}
 	}
 	// Cleanup
 	tracker.Wait()
