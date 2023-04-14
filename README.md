@@ -5,6 +5,6 @@
 - Backtracking DFS with random direction
 
 # Maze Solving Algorithms:
-- DFS (Single-threaded)
 - DFS (Multi-threaded)
 - BFS (Single-threaded)
+- BFS (Multi-threaded)
