@@ -83,8 +83,12 @@
             document.getElementById("maze").addEventListener("click", async function () {
                 halt = !halt;
             });
-            await drawAllPathsSequentially();
-            await drawBestPath();
+            if (stepsFull.length > 0) {
+                await drawAllPathsSimultaneously();
+            }
+            if (bestSteps.length > 0) {
+                await drawBestPath();
+            }
         });
 
         function initFormData() {
@@ -227,10 +231,10 @@
             </select>
             <br>
             <label for="width">Width:</label>
-            <input type="number" id="width" name="width" min="3" max="400" value="200">
+            <input type="number" id="width" name="width" min="3" max="500" value="200">
             <br>
             <label for="height">Height:</label>
-            <input type="number" id="height" name="height" min="3" max="400" value="112">
+            <input type="number" id="height" name="height" min="3" max="500" value="112">
             <br>
             <label for="tickSpeed">Milliseconds per tick:</label>
             <input type="number" id="tickSpeed" name="tickSpeed" min="1" max="500" value="1">
