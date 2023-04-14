@@ -145,6 +145,8 @@ func bfs(g *graph, val int, startIndex int) (exists bool, path *[]int, solution 
 		}
 	}
 
+	// Cut off the part of the path that overwrites the solution
+	pathOut = pathOut[:len(pathOut)-1]
 	return success, &pathOut, &solutionOut
 }
 

@@ -18,6 +18,8 @@ type TemplateData struct {
 	TickSpeed template.JS
 	// PathRepeats determines the number of nodes updated for each tick when drawing paths
 	PathRepeats template.JS
+	// FormData allows for user inputted form data to reappear on the webpage
+	FormData template.JS
 }
 
 func toStyle(node mazeNode) template.CSS {
@@ -88,19 +90,7 @@ func pathsToJs(m *maze, paths *[][]int) template.JS {
 	return out
 }
 
-/*func pointerPathsToJs(m *maze, paths *[]*[]int) template.JS {
-	out := template.JS("[")
-	for _, path := range *paths {
-		out += pathToJs(m, path)
-		out += ", "
-	}
-	// Cut off trailing comma
-	out = out[:len(out)-2]
-	out += template.JS("]")
-	return out
-}*/
-
-func fillTemplateBFS(m *maze, tickSpeed int, repeats int) *TemplateData {
+func fillTemplateBFS(m *maze, tickSpeed int, repeats int, formData string) *TemplateData {
 	// Run BFS to find a solution
 	bfsOk, bfsPath, bfsSolution := bfs(&m.g, 3, 0)
 
@@ -116,10 +106,10 @@ func fillTemplateBFS(m *maze, tickSpeed int, repeats int) *TemplateData {
 		bestPath = template.JS("[]")
 	}
 
-	return fillTemplateData(m, mazePath, bestPath, tickSpeed, repeats)
+	return fillTemplateData(m, mazePath, bestPath, tickSpeed, repeats, formData)
 }
 
-func fillTemplateBFSMultithreaded(m *maze, tickSpeed int, repeats int) *TemplateData {
+func fillTemplateBFSMultithreaded(m *maze, tickSpeed int, repeats int, formData string) *TemplateData {
 	// Run BFS to find a solution
 	bfsOk, bfsPath, bfsSolution := bfsMultithreaded(&m.g, 3, 0, 4)
 
@@ -135,10 +125,10 @@ func fillTemplateBFSMultithreaded(m *maze, tickSpeed int, repeats int) *Template
 		bestPath = template.JS("[]")
 	}
 
-	return fillTemplateData(m, mazePath, bestPath, tickSpeed, repeats)
+	return fillTemplateData(m, mazePath, bestPath, tickSpeed, repeats, formData)
 }
 
-func fillTemplateDFS(m *maze, tickSpeed int, repeats int) *TemplateData {
+func fillTemplateDFS(m *maze, tickSpeed int, repeats int, formData string) *TemplateData {
 	// Run DFS to find a solution
 	dfsOk, dfsPath := dfs(&m.g, 3, 0)
 	var bestPath template.JS
@@ -159,11 +149,11 @@ func fillTemplateDFS(m *maze, tickSpeed int, repeats int) *TemplateData {
 		print("No Valid Multi-threaded DFS\n")
 	}
 
-	return fillTemplateData(m, mazePath, bestPath, tickSpeed, repeats)
+	return fillTemplateData(m, mazePath, bestPath, tickSpeed, repeats, formData)
 }
 
 // fillTemplateData executes the search algorithms and processes their results.
-func fillTemplateData(m *maze, mazePath template.JS, bestPath template.JS, tickSpeed int, repeats int) *TemplateData {
+func fillTemplateData(m *maze, mazePath template.JS, bestPath template.JS, tickSpeed int, repeats int, formData string) *TemplateData {
 	mazeValues := mazeToSlice(m)
 	mazeStyles := mazeSliceToStyle(mazeValues)
 
@@ -174,6 +164,7 @@ func fillTemplateData(m *maze, mazePath template.JS, bestPath template.JS, tickS
 		MBestPath:   bestPath,
 		TickSpeed:   template.JS(strconv.Itoa(tickSpeed)),
 		PathRepeats: template.JS(strconv.Itoa(repeats)),
+		FormData:    template.JS(formData),
 	}
 	return &tplData
 }

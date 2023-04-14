@@ -12,19 +12,20 @@ import (
 var tpl = template.Must(template.ParseFiles("templates/index.html"))
 
 // makeMaze converts a http request into a http response
-func makeMazeResponse(w http.ResponseWriter, r *http.Request, generationAlgorithm int) {
+func makeMazeResponse(w http.ResponseWriter, r *http.Request) {
 	timeStart := time.Now()
 	// generationAlgorithm defines the maze generation algorithm
 	// 1 = random
 	// 2 = DFS
 
 	// Default configuration variables
-	width := 180
-	height := 90
+	width := 200
+	height := 112
 	tickSpeed := 1
-	repeats := 20
+	repeats := 100
 	density := 15
-	solve := "bfs"
+	solve := ""
+	generate := ""
 
 	// Parse values from GET request, if they exist
 	inputWidth, err := strconv.Atoi(r.URL.Query().Get("width"))
@@ -47,34 +48,49 @@ func makeMazeResponse(w http.ResponseWriter, r *http.Request, generationAlgorith
 	if err == nil && inputDensity > 0 {
 		density = inputDensity
 	}
-	inputSolve := r.URL.Query().Get("solve")
-	if inputSolve == "dfs" {
+	inputSolve := r.URL.Query().Get("solveAlgorithm")
+	switch inputSolve {
+	case "dfs":
 		solve = "dfs"
-	} else if inputSolve == "bfsmulti" {
+	case "bfsmulti":
 		solve = "bfsmulti"
+	case "bfs":
+		solve = "bfs"
+	}
+	inputGenerate := r.URL.Query().Get("generateAlgorithm")
+	switch inputGenerate {
+	case "random":
+		generate = "random"
+	case "dfs":
+		generate = "dfs"
 	}
 
-	// TODO there are impossible patterns (closed off areas) on large mazes - not sure if it is a visual bug or a data structure bug
+	// I know this is gross, sorry.
+	formData := "[\"" + generate + "\", \"" + solve + "\", \"" + strconv.Itoa(width) + "\", \"" + strconv.Itoa(height) + "\", \"" + strconv.Itoa(tickSpeed) + "\", \"" + strconv.Itoa(repeats) + "\", \"" + strconv.Itoa(density) + "\"]"
 
 	// Init maze with a given algorithm
 	maze := initMaze(height, width)
 	maze.SetSquare(height-1, width-1, 3)
-	switch generationAlgorithm {
-	case 1:
+	switch generate {
+	case "random":
 		randomizeMaze(maze, density)
-	case 2:
+	case "dfs":
 		createDFSMaze(maze)
+	default:
+		maze.setAllWalls(false)
 	}
 
 	// Solve maze with a given algorithm
 	var tplData *TemplateData
 	switch solve {
 	case "bfs":
-		tplData = fillTemplateBFS(maze, tickSpeed, repeats)
+		tplData = fillTemplateBFS(maze, tickSpeed, repeats, formData)
 	case "dfs":
-		tplData = fillTemplateDFS(maze, tickSpeed, repeats)
+		tplData = fillTemplateDFS(maze, tickSpeed, repeats, formData)
 	case "bfsmulti":
-		tplData = fillTemplateBFSMultithreaded(maze, tickSpeed, repeats)
+		tplData = fillTemplateBFSMultithreaded(maze, tickSpeed, repeats, formData)
+	default:
+		tplData = fillTemplateData(maze, "[]", "[]", tickSpeed, repeats, formData)
 	}
 
 	err = tpl.Execute(w, tplData)
@@ -91,21 +107,11 @@ func makeMazeResponse(w http.ResponseWriter, r *http.Request, generationAlgorith
 	fmt.Printf("Served! in %.0f ms and %.0f us\n", timeEndMs, timeEndUs-(math.Floor(timeEndMs)*1000.0))
 }
 
-func dfsHandler(w http.ResponseWriter, r *http.Request) {
-	makeMazeResponse(w, r, 2)
-}
-
-func randomHandler(w http.ResponseWriter, r *http.Request) {
-	makeMazeResponse(w, r, 1)
-}
-
 func main() {
 
 	mux := http.NewServeMux()
 
-	mux.HandleFunc("/", dfsHandler)
-	mux.HandleFunc("/dfs", dfsHandler)
-	mux.HandleFunc("/random", randomHandler)
+	mux.HandleFunc("/", makeMazeResponse)
 
 	port := "3000"
 	http.ListenAndServe(":"+port, mux)
