@@ -111,6 +111,7 @@ func main() {
 
 	mux := http.NewServeMux()
 
+	// TODO Sometimes there are visual glitches in the maze display
 	mux.HandleFunc("/", makeMazeResponse)
 
 	port := "3000"

@@ -1,8 +1,13 @@
 package main
 
 import (
+	"context"
 	"sync"
+	"time"
 )
+
+// Time to run Multithreaded BFS before timing out.
+const timeoutMilliseconds = 1000
 
 // DFS finds the first node with a given value and returns:
 // - a boolean which is true if the value is accessible
@@ -126,14 +131,14 @@ func bfs(g *graph, val int, startIndex int) (exists bool, path *[]int, solution 
 	solutionOut := make([]int, 0)
 	visited := make([]bool, len(g.nodes), len(g.nodes))
 	parents := make([]int, len(g.nodes), len(g.nodes))
-	queue := make([]int, 0, 0)
-	// TODO Swap queue to a channel.
+	// Arbitrary buffer size
+	queue := make(chan int, 1000)
 
-	queue = append(queue, startIndex)
+	queue <- startIndex
 	visited[startIndex] = true
 	parents[startIndex] = -1
 
-	success, valIndex := bfsRecursive(g, &queue, val, &visited, &parents, &pathOut)
+	success, valIndex := bfsRecursive(g, queue, val, &visited, &parents, &pathOut)
 
 	// Backtrack through parents to find the shortest path.
 	if success {
@@ -150,13 +155,12 @@ func bfs(g *graph, val int, startIndex int) (exists bool, path *[]int, solution 
 	return success, &pathOut, &solutionOut
 }
 
-func bfsRecursive(g *graph, queue *[]int, val int, visited *[]bool, parents *[]int, pathOut *[]int) (success bool, valIndex int) {
-	if len(*queue) == 0 {
+func bfsRecursive(g *graph, queue chan int, val int, visited *[]bool, parents *[]int, pathOut *[]int) (success bool, valIndex int) {
+	if len(queue) == 0 {
 		return false, -1
 	}
 
-	currentNode := g.nodes[(*queue)[0]]
-	*queue = (*queue)[1:]
+	currentNode := g.nodes[<-queue]
 	*pathOut = append(*pathOut, currentNode.index)
 
 	if currentNode.val == val {
@@ -166,7 +170,7 @@ func bfsRecursive(g *graph, queue *[]int, val int, visited *[]bool, parents *[]i
 	for _, currentNeighbor := range currentNode.neighbors {
 		if !(*visited)[currentNeighbor.n.index] {
 			(*visited)[currentNeighbor.n.index] = true
-			*queue = append(*queue, currentNeighbor.n.index)
+			queue <- currentNeighbor.n.index
 			(*parents)[currentNeighbor.n.index] = currentNode.index
 		}
 	}
@@ -184,10 +188,10 @@ func bfsIterative(g *graph, val int, startIndex int) (exists bool, path *[]int, 
 	solutionOut := make([]int, 0)
 	visited := make([]bool, len(g.nodes), len(g.nodes))
 	parents := make([]int, len(g.nodes), len(g.nodes))
-	queue := make([]int, 0, 0)
-	// TODO Swap queue to a channel
+	// Arbitrary buffer size
+	queue := make(chan int, 1000)
 
-	queue = append(queue, startIndex)
+	queue <- startIndex
 	visited[startIndex] = true
 	parents[startIndex] = -1
 
@@ -195,8 +199,7 @@ func bfsIterative(g *graph, val int, startIndex int) (exists bool, path *[]int, 
 	valIndex := -1
 
 	for len(queue) != 0 {
-		currentNode := g.nodes[queue[0]]
-		queue = queue[1:]
+		currentNode := g.nodes[<-queue]
 		pathOut = append(pathOut, currentNode.index)
 
 		if currentNode.val == val {
@@ -208,7 +211,7 @@ func bfsIterative(g *graph, val int, startIndex int) (exists bool, path *[]int, 
 		for _, currentNeighbor := range currentNode.neighbors {
 			if !visited[currentNeighbor.n.index] {
 				visited[currentNeighbor.n.index] = true
-				queue = append(queue, currentNeighbor.n.index)
+				queue <- currentNeighbor.n.index
 				parents[currentNeighbor.n.index] = currentNode.index
 			}
 		}
@@ -236,7 +239,7 @@ func bfsIterative(g *graph, val int, startIndex int) (exists bool, path *[]int, 
 // If they are not, it will put them into the parents array and back into the input queue.
 // Once the solution is found, the thread manager will close the input queue which kills the senders.
 // The thread manager will calculate the solution path and return.
-// If there are no more items in the both channels and all threads are dormant, there is no valid solution, so threadManager shuts down.
+// If there are no more items in the channel that the senders output into and it's been more than a preset time, the bfsMultithreaded cancels, because either there is no solution or the maze is too big.
 
 type childParentPair struct {
 	parent   int
@@ -257,35 +260,44 @@ func bfsMultithreaded(g *graph, goalVal int, startIndex int, maxThreads int) (bo
 
 	childOut <- childParentPair{parent: -1, child: g.nodes[startIndex].index}
 
+	ctx, cancel := context.WithCancel(context.Background())
 	for i := 0; i < maxThreads; i++ {
 		tracker.Add(1)
-		go bfsThread(g, parentIn, childOut, goalVal, &tracker, i)
+		go bfsThread(ctx, g, parentIn, childOut, goalVal, &tracker, i)
 	}
 
 	indexOfGoalNode := -1
+	timeStart := time.Now().UnixMilli()
 	for {
-		// Needs to check if visited and set if visited for results
-		pair := <-childOut
-		if pair.child == -1 {
-			// Terminate
-			indexOfGoalNode = pair.parent
-			close(parentIn)
-			// Cut off the part of the path that overwrites the solution
-			paths[pair.threadID] = paths[pair.threadID][:len(paths[pair.threadID])-1]
-			break
+		// Don't get stuck waiting for an output that will never come
+		if len(childOut) == 0 {
+			// Arbitrarily end after 5 seconds
+			// Otherwise, the function will hang indefinitely
+			// This is because there is currently no way to tell if threads are in progress.
+			if time.Now().UnixMilli()-timeStart > timeoutMilliseconds {
+				cancel()
+				close(parentIn)
+				break
+			}
+		} else {
+			pair := <-childOut
+
+			if pair.child == -1 {
+				// Terminate
+				indexOfGoalNode = pair.parent
+				cancel()
+				close(parentIn)
+				// Cut off the part of the path that overwrites the solution
+				paths[pair.threadID] = paths[pair.threadID][:len(paths[pair.threadID])-1]
+				break
+			}
+			if !visited[pair.child] {
+				visited[pair.child] = true
+				parents[pair.child] = pair.parent
+				paths[pair.threadID] = append(paths[pair.threadID], pair.child)
+				parentIn <- pair.child
+			}
 		}
-		if !visited[pair.child] {
-			visited[pair.child] = true
-			parents[pair.child] = pair.parent
-			paths[pair.threadID] = append(paths[pair.threadID], pair.child)
-			parentIn <- pair.child
-		}
-		// *** IF THERE IS NO SOLUTION, THIS WILL HANG FOREVER ***
-		// This is because there is currently no way to tell if threads are in progress.
-		//if len(parentIn) == 0 && len(childOut) == 0 {
-		//close(parentIn)
-		//break
-		//}
 	}
 	// Cleanup
 	tracker.Wait()
@@ -300,185 +312,29 @@ func bfsMultithreaded(g *graph, goalVal int, startIndex int, maxThreads int) (bo
 			i = parents[i]
 		}
 	}
-
 	return indexOfGoalNode != -1, &paths, &solution
 }
 
-func bfsThread(g *graph, parentIn chan int, childOut chan childParentPair, val int, tracker *sync.WaitGroup, Id int) {
+func bfsThread(ctx context.Context, g *graph, parentIn chan int, childOut chan childParentPair, val int, tracker *sync.WaitGroup, Id int) {
 	defer tracker.Done()
-	for p := range parentIn {
-		currentNode := g.nodes[p]
-		for _, currentNeighbor := range currentNode.neighbors {
-			childOut <- childParentPair{parent: p, child: currentNeighbor.n.index, threadID: Id}
-			// Check for termination after sending the value so the parents array knows where the solution is
-			if currentNeighbor.n.val == val {
-				// Terminate
-				childOut <- childParentPair{parent: currentNeighbor.n.index, child: -1, threadID: Id}
-			}
-		}
-	}
-}
-
-/*
-type bfsShared struct {
-	visited []bool
-	// parents is an array of nodes' parents for finding the optimal path
-	parents []int
-	// queue is a queue of the next values to test
-	queue []int
-	// found stores the index of the solution node. If it is -1, the solution has not been found.
-	solution int
-	sync.Mutex
-}
-
-type safePaths struct {
-	p []*[]int
-	sync.Mutex
-}
-
-type threadManager struct {
-	maxThreads int
-	// WaitGroup for bfsMultithreaded to know all threads are done
-	sync.WaitGroup
-}
-
-type threadDone struct {
-	//separate data structure for the manager to know when it needs to start new threads.
-	numThreads int
-	sync.Mutex
-}
-
-func bfsMultithreaded(g *graph, val int, startIndex int, maxThreads int) (exists bool, paths *[]*[]int, solution *[]int) {
-	if maxThreads < 1 || startIndex < 0 {
-		return false, nil, nil
-	}
-
-	pathsOut := safePaths{
-		p: make([]*[]int, 0),
-	}
-	solutionOut := make([]int, 0)
-	v := make([]bool, len(g.nodes), len(g.nodes))
-	p := make([]int, len(g.nodes), len(g.nodes))
-	q := make([]int, 0)
-	// TODO Swap queue to a channel
-
-	q = append(q, startIndex)
-	v[startIndex] = true
-	p[startIndex] = -1
-
-	bfsData := bfsShared{
-		visited:  v,
-		parents:  p,
-		queue:    q,
-		solution: -1,
-	}
-
-	tManager := threadManager{
-		maxThreads: maxThreads,
-	}
-
-	tManager.Add(1)
-	go bfsMultithreadedManager(&tManager, g, &bfsData, val, &pathsOut)
-	tManager.Wait()
-
-	// Backtrack through parents to find the shortest path.
-	if bfsData.solution != -1 {
-		// Start at the goal node.
-		i := bfsData.solution
-		for i != -1 {
-			solutionOut = append(solutionOut, i)
-			i = bfsData.parents[i]
-		}
-	}
-
-	// Ensure paths are caught up
-	pathsOut.Lock()
-	pathsOut.Unlock()
-
-	return bfsData.solution != -1, &pathsOut.p, &solutionOut
-}
-
-func bfsMultithreadedManager(threadManager *threadManager, g *graph, bfsData *bfsShared, val int, paths *safePaths) {
-	defer threadManager.Done()
-
-	threadData := threadDone{
-		numThreads: 0,
-	}
-
 	for {
-		threadData.Lock()
-		if threadData.numThreads < threadManager.maxThreads {
-			threadData.Unlock()
-
-			bfsData.Lock()
-			// The second condition is needed to deap with graphs without solution but breaks real mazes.
-			// I'm pretty sure the best fix is using channels.
-			if bfsData.solution == -1 && len(bfsData.queue) > 0 {
-				bfsData.Unlock()
-
-				newPath := make([]int, 0)
-				paths.Lock()
-				paths.p = append(paths.p, &newPath)
-				paths.Unlock()
-
-				threadData.Lock()
-				threadData.numThreads++
-				threadData.Unlock()
-
-				go bfsMultithreadedSubprocess(&threadData, g, bfsData, &newPath, val)
-
-			} else {
-				bfsData.Unlock()
+		select {
+		case <-ctx.Done():
+			return
+		case p, ok := <-parentIn:
+			if !ok {
 				return
 			}
 
-		} else {
-			threadData.Unlock()
-		}
-	}
-}
-
-func killThread(threadData *threadDone) {
-	threadData.Lock()
-	threadData.numThreads--
-	threadData.Unlock()
-}
-
-func bfsMultithreadedSubprocess(threadData *threadDone, g *graph, data *bfsShared, pathOut *[]int, val int) {
-	defer killThread(threadData)
-
-	for {
-		data.Lock()
-		//end if the search is over or the solution has been found
-		if len(data.queue) == 0 || data.solution != -1 {
-			data.Unlock()
-			return
-		}
-
-		currentNode := g.nodes[data.queue[0]]
-		data.queue = data.queue[1:]
-		data.Unlock()
-
-		*pathOut = append(*pathOut, currentNode.index)
-
-		if currentNode.val == val {
-			data.Lock()
-			data.solution = currentNode.index
-			data.Unlock()
-			// Do not overwrite the solution.
-			*pathOut = (*pathOut)[:len(*pathOut)-1]
-			return
-		}
-
-		for _, currentNeighbor := range currentNode.neighbors {
-			data.Lock()
-			if !data.visited[currentNeighbor.n.index] {
-				data.visited[currentNeighbor.n.index] = true
-				data.queue = append(data.queue, currentNeighbor.n.index)
-				data.parents[currentNeighbor.n.index] = currentNode.index
+			currentNode := g.nodes[p]
+			for _, currentNeighbor := range currentNode.neighbors {
+				childOut <- childParentPair{parent: p, child: currentNeighbor.n.index, threadID: Id}
+				// Check for termination after sending the value so the parents array knows where the solution is
+				if currentNeighbor.n.val == val {
+					// Terminate
+					childOut <- childParentPair{parent: currentNeighbor.n.index, child: -1, threadID: Id}
+				}
 			}
-			data.Unlock()
 		}
 	}
 }
-*/
