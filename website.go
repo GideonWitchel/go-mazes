@@ -69,15 +69,15 @@ func makeMazeResponse(w http.ResponseWriter, r *http.Request) {
 	formData := "[\"" + generate + "\", \"" + solve + "\", \"" + strconv.Itoa(width) + "\", \"" + strconv.Itoa(height) + "\", \"" + strconv.Itoa(tickSpeed) + "\", \"" + strconv.Itoa(repeats) + "\", \"" + strconv.Itoa(density) + "\"]"
 
 	// Init maze with a given algorithm
-	maze := initMaze(height, width)
+	maze := InitMaze(height, width)
 	maze.SetSquare(height-1, width-1, 3)
 	switch generate {
 	case "random":
-		randomizeMaze(maze, density)
+		RandomizeMaze(maze, density)
 	case "dfs":
-		createDFSMaze(maze)
+		CreateDFSMaze(maze)
 	default:
-		maze.setAllWalls(false)
+		maze.SetAllWalls(false)
 	}
 
 	// Solve maze with a given algorithm
@@ -93,6 +93,7 @@ func makeMazeResponse(w http.ResponseWriter, r *http.Request) {
 		tplData = fillTemplateData(maze, "[]", "[]", tickSpeed, repeats, formData)
 	}
 
+	// TODO Sometimes there are visual glitches in the maze display
 	err = tpl.Execute(w, tplData)
 	if err != nil {
 		fmt.Println(err)
@@ -108,10 +109,7 @@ func makeMazeResponse(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-
 	mux := http.NewServeMux()
-
-	// TODO Sometimes there are visual glitches in the maze display
 	mux.HandleFunc("/", makeMazeResponse)
 
 	port := "3000"

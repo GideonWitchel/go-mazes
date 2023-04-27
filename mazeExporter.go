@@ -12,19 +12,19 @@ type mazeNode struct {
 
 func makeMazeNode(m *maze, row int, col int) mazeNode {
 	var newMazeNode mazeNode
-	newMazeNode.val = m.g.nodes[getMazeIndex(m, row, col)].val
+	newMazeNode.val = m.g.nodes[GetMazeIndex(m, row, col)].val
 	// An edge is the absence of a wall
 	// If it has no edge, it has a wall
-	if row == 0 || !m.g.HasEdge(getMazeIndex(m, row, col), getMazeIndex(m, row-1, col)) {
+	if row == 0 || !m.g.HasEdge(GetMazeIndex(m, row, col), GetMazeIndex(m, row-1, col)) {
 		newMazeNode.up = true
 	}
-	if row == m.height-1 || !m.g.HasEdge(getMazeIndex(m, row, col), getMazeIndex(m, row+1, col)) {
+	if row == m.height-1 || !m.g.HasEdge(GetMazeIndex(m, row, col), GetMazeIndex(m, row+1, col)) {
 		newMazeNode.down = true
 	}
-	if col == m.width-1 || !m.g.HasEdge(getMazeIndex(m, row, col), getMazeIndex(m, row, col+1)) {
+	if col == m.width-1 || !m.g.HasEdge(GetMazeIndex(m, row, col), GetMazeIndex(m, row, col+1)) {
 		newMazeNode.right = true
 	}
-	if col == 0 || !m.g.HasEdge(getMazeIndex(m, row, col), getMazeIndex(m, row, col-1)) {
+	if col == 0 || !m.g.HasEdge(GetMazeIndex(m, row, col), GetMazeIndex(m, row, col-1)) {
 		newMazeNode.left = true
 	}
 

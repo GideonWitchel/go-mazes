@@ -9,10 +9,22 @@ import (
 // Time to run Multithreaded BFS before timing out.
 const timeoutMilliseconds = 1000
 
+func GetSeekerLocations(m *maze, numSeekers int) []int {
+	// Math to place evenly spaced seekers in the middle of the maze
+	spacerForIndex := m.width / numSeekers
+	rowForIndex := m.height*m.width/2 - spacerForIndex/2
+	starts := make([]int, numSeekers, numSeekers)
+
+	for i := 0; i < numSeekers; i++ {
+		starts[i] = rowForIndex + spacerForIndex*i
+	}
+	return starts
+}
+
 // DFS finds the first node with a given value and returns:
 // - a boolean which is true if the value is accessible
 // - a slice of indexes with the order of nodes to get there, starting with the node of the desired value and ending with the starting node
-func dfs(g *graph, val int, startIndex int) (exists bool, path *[]int) {
+func DFS(g *graph, val int, startIndex int) (exists bool, path *[]int) {
 	pathOut := make([]int, 0)
 	visited := make([]bool, len(g.nodes), len(g.nodes))
 
@@ -39,17 +51,6 @@ func dfsRecursive(n *node, val int, visited *[]bool, pathOut *[]int) bool {
 	return false
 }
 
-func reverseSlice(in *[]int) *[]int {
-	out := make([]int, len(*in))
-
-	for i, val := range *in {
-		newIndex := len(*in) - i - 1
-		out[newIndex] = val
-	}
-
-	return &out
-}
-
 type dfsShared struct {
 	visited []bool
 	// found represents the path ID (thread ID - 1) of whoever found the solution node.
@@ -59,10 +60,11 @@ type dfsShared struct {
 	sync.WaitGroup
 }
 
-// dfsMultithreaded finds a value in a graph using a number of simultaneous dfs searches with a shared visited list.
+// DFSMultithreaded finds a value in a graph using a number of simultaneous DFS searches with a shared visited list.
+// DFSMultithreaded knows whether a value exists in the maze but doesn't know a unified path from the start to the end.
 // exists is an index which specifies which search ended up finding the value in the paths array.
 // If exists is -1, there is valid path to the solution from any starting index.
-func dfsMultithreaded(g *graph, val int, startIndecies []int) (exists int, p *[][]int) {
+func DFSMultithreaded(g *graph, val int, startIndecies []int) (exists int, p *[][]int) {
 	pathsOut := make([][]int, len(startIndecies), len(startIndecies))
 
 	visitedArray := make([]bool, len(g.nodes), len(g.nodes))
@@ -126,7 +128,7 @@ func dfsRecursiveMultithreaded(n *node, val int, dfsData *dfsShared, myPath *[]i
 // - a boolean which is true if the value is accessible
 // - a path slice of indexes covering everything the search algorithm covered, in the order they were visited
 // - a solution slice of indexes with the order of nodes to efficiently get to the value, starting with the node of the desired value and ending with the starting node
-func bfs(g *graph, val int, startIndex int) (exists bool, path *[]int, solution *[]int) {
+func BFS(g *graph, val int, startIndex int) (exists bool, path *[]int, solution *[]int) {
 	pathOut := make([]int, 0)
 	solutionOut := make([]int, 0)
 	visited := make([]bool, len(g.nodes), len(g.nodes))
@@ -183,7 +185,7 @@ func bfsRecursive(g *graph, queue chan int, val int, visited *[]bool, parents *[
 	return false, -1
 }
 
-func bfsIterative(g *graph, val int, startIndex int) (exists bool, path *[]int, solution *[]int) {
+func BFSIterative(g *graph, val int, startIndex int) (exists bool, path *[]int, solution *[]int) {
 	pathOut := make([]int, 0)
 	solutionOut := make([]int, 0)
 	visited := make([]bool, len(g.nodes), len(g.nodes))
@@ -239,7 +241,7 @@ func bfsIterative(g *graph, val int, startIndex int) (exists bool, path *[]int, 
 // If they are not, it will put them into the parents array and back into the input queue.
 // Once the solution is found, the thread manager will close the input queue which kills the senders.
 // The thread manager will calculate the solution path and return.
-// If there are no more items in the channel that the senders output into and it's been more than a preset time, the bfsMultithreaded cancels, because either there is no solution or the maze is too big.
+// If there are no more items in the channel that the senders output into and it's been more than a preset time, the BFSMultithreaded cancels, because either there is no solution or the maze is too big.
 
 type childParentPair struct {
 	parent   int
@@ -247,8 +249,8 @@ type childParentPair struct {
 	threadID int
 }
 
-// bfsMultithreaded returns references to the success, the paths array, and the solution array
-func bfsMultithreaded(g *graph, goalVal int, startIndex int, maxThreads int) (bool, *[][]int, *[]int) {
+// BFSMultithreaded returns references to the success, the paths array, and the solution array
+func BFSMultithreaded(g *graph, goalVal int, startIndex int, maxThreads int) (bool, *[][]int, *[]int) {
 	// init
 	// Channels have arbitrary buffer sizes - maybe they should be the size of maxThreads?
 	parentIn := make(chan int, 1000)
@@ -271,7 +273,7 @@ func bfsMultithreaded(g *graph, goalVal int, startIndex int, maxThreads int) (bo
 	for {
 		// Don't get stuck waiting for an output that will never come
 		if len(childOut) == 0 {
-			// Arbitrarily end after 5 seconds
+			// Arbitrarily end after a predetermined amount of time
 			// Otherwise, the function will hang indefinitely
 			// This is because there is currently no way to tell if threads are in progress.
 			if time.Now().UnixMilli()-timeStart > timeoutMilliseconds {

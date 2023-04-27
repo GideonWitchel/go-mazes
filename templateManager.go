@@ -67,7 +67,7 @@ func pathToJs(m *maze, path *[]int) template.JS {
 	out := "["
 
 	for i := 0; i < len(*path); i++ {
-		row, col := getMazeCoords(m, (*path)[i])
+		row, col := GetMazeCoords(m, (*path)[i])
 		out += "[" + strconv.Itoa(row) + ", " + strconv.Itoa(col) + "], "
 	}
 
@@ -92,7 +92,7 @@ func pathsToJs(m *maze, paths *[][]int) template.JS {
 
 func fillTemplateBFS(m *maze, tickSpeed int, repeats int, formData string) *TemplateData {
 	// Run BFS to find a solution
-	bfsOk, bfsPath, bfsSolution := bfs(&m.g, 3, 0)
+	bfsOk, bfsPath, bfsSolution := BFS(&m.g, 3, 0)
 
 	var mazePath template.JS
 	// Even if it fails, show what it got before it failed
@@ -111,7 +111,7 @@ func fillTemplateBFS(m *maze, tickSpeed int, repeats int, formData string) *Temp
 
 func fillTemplateBFSMultithreaded(m *maze, tickSpeed int, repeats int, formData string) *TemplateData {
 	// Run BFS to find a solution
-	bfsOk, bfsPath, bfsSolution := bfsMultithreaded(&m.g, 3, 0, 4)
+	bfsOk, bfsPath, bfsSolution := BFSMultithreaded(&m.g, 3, 0, 4)
 
 	var mazePath template.JS
 	// Even if it fails, show what it got before it failed
@@ -130,7 +130,7 @@ func fillTemplateBFSMultithreaded(m *maze, tickSpeed int, repeats int, formData 
 
 func fillTemplateDFS(m *maze, tickSpeed int, repeats int, formData string) *TemplateData {
 	// Run DFS to find a solution
-	dfsOk, dfsPath := dfs(&m.g, 3, 0)
+	dfsOk, dfsPath := DFS(&m.g, 3, 0)
 	var bestPath template.JS
 	if dfsOk {
 		bestPath = pathToJs(m, dfsPath)
@@ -140,8 +140,8 @@ func fillTemplateDFS(m *maze, tickSpeed int, repeats int, formData string) *Temp
 	}
 
 	// Run Multithreaded DFS to find a solution
-	startI := getSeekerLocations(m, 4)
-	multithreadedOk, paths := dfsMultithreaded(&m.g, 3, startI)
+	startI := GetSeekerLocations(m, 4)
+	multithreadedOk, paths := DFSMultithreaded(&m.g, 3, startI)
 	var mazePath template.JS
 	// Even if it fails, show what it got before it failed
 	mazePath = pathsToJs(m, paths)
