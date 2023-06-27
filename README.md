@@ -1,5 +1,7 @@
 # go-mazes
 
+This project implements the frontend and backend of generating and solving mazes as graphs in golang. Mazes are calculated locally, packaged into HTML, and displayed using a webserver.
+
 ## Maze Generation Algorithms:
 - Random Walls
 - DFS with random direction
